@@ -1,2 +1,4 @@
 # FFXIITZA-FPS-Unlocker
-Unlocks the framerate limit in Final Fantasy XII: The Zodiac Age for PC.
+This program unlocks the framerate limit in Final Fantasy XII: The Zodiac Age for PC.
+
+
