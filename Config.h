@@ -56,7 +56,7 @@ namespace Config {
 				<< "#The frametime target when you are not tabbed into the game.\n"
 				<< "requestedMinFrameTimeNoFocus=0.041666666666\n\n"
 				<< "#How many times per frame should the main loop run? Raising this will increase the CPU usage of the program. If you're experiencing performance problems, consider lowering this.\n"
-				<< "#I suggest not going below one, because that will make the program much less accurate. 0 will crash the program. [Reccomended: User Preference]\n\n"
+				<< "#I suggest not going below one, because that will make the program much less accurate. 0 will crash the program. [Reccomended: User Preference]\n"
 				<< "mainThreadUpdateCoef=3\n\n"
 				<< "#IGMState overrides change the base multiplier for each state. Default: 0=1, 1=2, 2=4 [Reccomended: User Preference]\n"
 				<< "igmState0Override=1\n"
@@ -83,7 +83,7 @@ namespace Config {
 			std::string inLine;
 			while (std::getline(config, inLine))
 			{
-				if (!inLine.find("#"))
+				if (inLine.find("#") == inLine.npos)
 				{
 					refLine = inLine.substr(0, inLine.find("=") + 1);
 
