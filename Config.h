@@ -25,7 +25,7 @@ struct UserConfig {
 	double requestedMinFrameTime = 0;
 	double requestedMinFrameTimeMenus = (double)1LL / (double)60LL;
 	double requestedMinFrameTimeNoFocus = (double)1LL / (double)24LL;
-	double mainThreadUpdateCoef = 3;
+	double mainThreadUpdateCoef = 2;
 	float igmState0Override = 1;
 	float igmState1Override = 2;
 	float igmState2Override = 4;
@@ -57,7 +57,7 @@ namespace Config {
 				<< "requestedMinFrameTimeNoFocus=0.041666666666\n\n"
 				<< "#How many times per frame should the main loop run? Raising this will increase the CPU usage of the program. If you're experiencing performance problems, consider lowering this.\n"
 				<< "#I suggest not going below one, because that will make the program much less accurate. 0 will crash the program. [Reccomended: User Preference]\n"
-				<< "mainThreadUpdateCoef=3\n\n"
+				<< "mainThreadUpdateCoef=2\n\n"
 				<< "#IGMState overrides change the base multiplier for each state. Default: 0=1, 1=2, 2=4 [Reccomended: User Preference]\n"
 				<< "igmState0Override=1\n"
 				<< "igmState1Override=2\n"
