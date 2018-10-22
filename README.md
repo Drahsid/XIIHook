@@ -9,6 +9,12 @@ Get framerates as high as your system can produce. This program gives you full c
 ### Control the in-game multiplier
 Is 4x speed not enough? Make it 24x! Want to punish yourself for trying to use the in-game multiplier? Set the values 1! Whatever you want, you have complete control.
 
+### Control what you see
+Feel a bit claustrophobic with the game's low field of view? Fear not! You can change it to whatever you like- you could even lower it if you want a good closeup.
+
+#### Change the Gamma
+Alongside the field of view customization, you can also modify the game's gamma!
+
 ### Keep your resources
 Tab out of the game to go reply to a pesky email and find that it's hogging all of your computer's resources? No longer! You can tone the game down when it's your current focus.
 
