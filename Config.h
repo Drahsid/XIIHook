@@ -26,6 +26,8 @@ struct UserConfig {
 	double requestedMinFrameTimeMenus = (double)1LL / (double)60LL;
 	double requestedMinFrameTimeNoFocus = (double)1LL / (double)24LL;
 	double mainThreadUpdateCoef = 2;
+	float fov = 83;
+	float gamma = 45;
 	float igmState0Override = 1;
 	float igmState1Override = 2;
 	float igmState2Override = 4;
@@ -49,12 +51,16 @@ namespace Config {
 			config.close();
 			config.open("fpsconfig.ini", std::fstream::in | std::fstream::out);
 
-			config << "#In game frametime target. [Reccomended: Keep at 0 unless the time scaling is choppy, in which case change this to 1/YourAvgFPS]\n"
-				<< "requestedMinFrameTime=0;\n\n"
-				<< "#Don't want superfast menus? [Reccomended: Keep at 1/60]\n"
-				<< "requestedMinFrameTimeMenus=0.01666666666;\n\n"
+			config << "#In game frametime target. [Reccomended: A limit that your PC can hit]\n"
+				<< "requestedMinFrameTime=90\n\n"
+				<< "#Don't want superfast menus? [Reccomended: Keep at 60]\n"
+				<< "requestedMinFrameTimeMenus=60\n\n"
 				<< "#The frametime target when you are not tabbed into the game.\n"
-				<< "requestedMinFrameTimeNoFocus=0.041666666666\n\n"
+				<< "requestedMinFrameTimeNoFocus=24\n\n"
+				<< "#The in-game field of view. [Reccomended: User Preference]\n"
+				<< "Fov=83\n\n"
+				<< "#The in game gamma (brightness). [Reccomended: User Preference]\n"
+				<< "gamma=45\n\n"
 				<< "#How many times per frame should the main loop run? Raising this will increase the CPU usage of the program. If you're experiencing performance problems, consider lowering this.\n"
 				<< "#I suggest not going below one, because that will make the program much less accurate. 0 will crash the program. [Reccomended: User Preference]\n"
 				<< "mainThreadUpdateCoef=2\n\n"
@@ -101,6 +107,16 @@ namespace Config {
 					{
 						std::string val = inLine.substr(inLine.find("=") + 1);
 						uConfig.requestedMinFrameTimeNoFocus = stod(val.c_str());
+					}
+					else if (refLine == "Fov=")
+					{
+						std::string val = inLine.substr(inLine.find("=") + 1);
+						uConfig.fov = ::atof(val.c_str());
+					}
+					else if (refLine == "gamma=")
+					{
+						std::string val = inLine.substr(inLine.find("=") + 1);
+						uConfig.gamma = ::atof(val.c_str());
 					}
 					else if (refLine == "mainThreadUpdateCoef=")
 					{
@@ -163,6 +179,8 @@ namespace Config {
 				<< "\nrequestedMinFrameTimeMenus=" << uConfig.requestedMinFrameTimeMenus
 				<< "\nrequestedMinFrameTimeNoFocus=" << uConfig.requestedMinFrameTimeNoFocus
 				<< "\nmainThreadUpdateCoef=" << uConfig.mainThreadUpdateCoef
+				<< "\nfov=" << uConfig.fov
+				<< "\ngamma=" << uConfig.gamma
 				<< "\nigmState0Override=" << uConfig.igmState0Override
 				<< "\nigmState1Override=" << uConfig.igmState1Override
 				<< "\nigmState2Override=" << uConfig.igmState2Override
