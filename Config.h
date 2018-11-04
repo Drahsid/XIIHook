@@ -26,7 +26,7 @@ struct UserConfig
 	int version = -1;
 	double requestedMinFrameTime = 90;
 	double requestedMinFrameTimeMenus = 60;
-	double requestedMinFrameTimeMovies = 60;
+	double requestedMinFrameTimeMovies = 59.97;
 	double requestedMinFrameTimeNoFocus = 24;
 	double mainThreadUpdateCoef = 1;
 	float fov = 45;
@@ -61,8 +61,8 @@ namespace Config {
 			<< "requestedMinFrameTimeMenus=" << (usePriorValues ? uConfig.requestedMinFrameTimeMenus : 60) << "\n\n"
 			<< "#The frametime target when you are not tabbed into the game. [Default: 60, Recommended: <60]\n"
 			<< "requestedMinFrameTimeNoFocus=" << (usePriorValues ? uConfig.requestedMinFrameTimeNoFocus : 24) << "\n\n"
-			<< "#The frametime target when you are in a pre-rendered movie. [Default: 29.98, Reccomended: 29.98]\n"
-			<< "requestedMinFrameTimeMovie=" << (usePriorValues ? uConfig.requestedMinFrameTimeMovies : 60) << "\n\n"
+			<< "#The frametime target when you are in a pre-rendered movie. [Default: 59.97, Reccomended: 59.97]\n"
+			<< "requestedMinFrameTimeMovie=" << (usePriorValues ? uConfig.requestedMinFrameTimeMovies : 59.97) << "\n\n"
 			<< "#The in-game field of view. [Default: 45, Recommended: User Preference]\n"
 			<< "Fov=" << (usePriorValues ? uConfig.fov : 45) << "\n\n"
 			<< "#The in game gamma (brightness). [Default: 45, Recommended: User Preference]\n"
