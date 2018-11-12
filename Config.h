@@ -5,6 +5,72 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <type_traits>
+#include "Interp.h"
+
+enum typeConversion 
+{
+	toInt,
+	toFloat,
+	toDouble,
+	toBool,
+	toStr
+};
+
+//Might be a way to automate this
+uint64_t numVars = 19;
+#define dConfigs \
+sEnum(Version, "Version", "# File version. Changing this will cause the config to update.\n", typeConversion::toInt) \
+sEnum(Framerate, "Framerate", "# In game frametime target. [Default: 60, Recommended: A limit that your PC can hit]\n", typeConversion::toDouble)\
+sEnum(FramerateMenus, "Framerate_Menus", "# In game frametime target while in menus. [Default: 60, Recommended: A limit that your PC can hit]\n", typeConversion::toDouble)\
+sEnum(FramerateMovies, "Framerate_Movies", "# In game frametime target while viewing the in game movies/fmvs. [Default: 59.97, Recommended: Default]\n", typeConversion::toDouble)\
+sEnum(FramerateNoFocus, "Framerate_NoFocus", "# In game frametime target while the game window is not in focus. [Default: 60, Recommended: A lower value if the game is hogging resources]\n", typeConversion::toDouble)\
+sEnum(mainThreadUpdateCoef, "Main_Thread_Update_Coef", "# The number of times the main loop will run per frame. A higher number results in slightly more accurate predictions, but also increases cpu usage.[Recommended: 1]\n", typeConversion::toDouble)\
+sEnum(Fov, "Field_of_View", "# The in-game Field of View. If you feel claustrophic, or that the viewing angle is too small, consider raising this. [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(Gamma, "Gamma", "# The in-game gamma (brightness). [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(IgmState0Override, "IGM_State0_Override", "# The 1x speed state of the in-game-multiplier. [Default: 1, Recommended: 1]\n", typeConversion::toFloat)\
+sEnum(IgmState1Override, "IGM_State1_Override", "# The 2x speed state of the in-game-multiplier. [Default: 2, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(IgmState2Override, "IGM_State2_Override", "# The 4x speed state of the in-game-multiplier. [Default: 4, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(LockedMouseMulti, "Locked_Mouse_Multi", "# The mouse speed multiplier. This works in conjunction with Enable_Locked_Mouse_Multi and Enable_Adaptive_Mouse. At least one of them must be enabled for this to be used. [Default: 2, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(EnableFullSpeedMode, "Enable_Full_Speed_Mode", "# Disable the framerate limit completely by erasing related opcodes. [Default: Off, Recommended: Off]\n", typeConversion::toBool)\
+sEnum(EnableAdaptiveIGM, "Enable_Adaptive_IGM", "# Enabling this will make the IGM will scale relativley to your framerate. Enable this if your animations are playing at incorrect speeds. [Default: Off, Recommended: Off]\n", typeConversion::toBool)\
+sEnum(EnableAdaptiveMouse, "Enable_Adaptive_Mouse", "# Enabling this will make the mouse speed scale relativley to your framerate AND to the in game multiplier. This fixes mouse speed issues found in the vanilla game. [Default: On, Recommended: On]\n", typeConversion::toBool)\
+sEnum(EnableLockedMouseMulti, "Enable_Locked_Mouse_Multi", "# Enabling this will stop the game from taking control over the mouse speed multiplier. This is ignored if Enable_Adaptive_Mouse is on. [Default: On, Recommended: On]\n", typeConversion::toBool)\
+sEnum(EnableTransitionSpeedRamp, "Enable_Transition_Speed_Ramp", "# Enabling this will set the time multiplier to 1x when in a scene transition. [Default: On, Recommended: On]\n", typeConversion::toBool)\
+sEnum(EnableEasing, "Enable_Easing", "# Enabling this will cause certain variables to ease when they are changed, such as the IGM. [Default: On, Recommended: User Preference]\n", typeConversion::toBool)\
+sEnum(EasingType, "EasingType", "# This value can be set to Linear, OnePointFive, Square, Cubic, Quad, Quint, or Sine. This changes the default equation used to smooth out igm changes, where linear is flat, and quint is the sharpest. [Default: Square, Recommended: User Preference]\n", typeConversion::toStr)
+
+#define sEnum(eName, sName, sDesc, iType) eName,
+enum eConfigs : size_t
+{
+	dConfigs
+};
+#undef sEnum
+
+#define sEnum(eName, sName, sDesc, iType) sName,
+char const *eConfigsName[] =
+{
+	dConfigs
+};
+#undef sEnum
+
+#define sEnum(eName, sName, sDesc, iType) sDesc,
+char const *eConfigsDescription[] =
+{
+	dConfigs
+};
+#undef sEnum
+
+#define sEnum(eName, sName, sDesc, iType) iType,
+int const eConfigsTypes[] =
+{
+	dConfigs
+};
+#undef sEnum
+
+#undef dConfigGroups
+#undef dConfigs
+
 
 inline double stod(const std::string&s)
 {
@@ -21,30 +87,232 @@ inline bool stob(std::string&s)
 	return (s == "1" || s == "on" || s == "true") || false;
 }
 
-struct UserConfig 
+class UserConfig 
 {
+public:
 	int version = -1;
-	double requestedMinFrameTime = 90;
-	double requestedMinFrameTimeMenus = 60;
-	double requestedMinFrameTimeMovies = 59.97;
-	double requestedMinFrameTimeNoFocus = 24;
+	double requestedMinFramerate = 60;
+	double requestedMinFramerateMenus = 60;
+	double requestedMinFramerateMovies = 59.978;
+	double requestedMinFramerateNoFocus = 30;
 	double mainThreadUpdateCoef = 1;
 	float fov = 45;
 	float gamma = 45;
 	float igmState0Override = 1;
 	float igmState1Override = 2;
 	float igmState2Override = 4;
-	float lockedMouseMulti = 1;
+	float lockedMouseMulti = 2;
 	bool bEnableFullSpeedMode = false;
-	bool bEnableAdaptiveIGM = true;
+	bool bEnableAdaptiveIGM = false;
 	bool bEnableAdaptiveMouse = true;
 	bool bEnableLockedMouseMulti = true;
 	bool bEnableTransitionSpeedRamp = true;
+	bool bEnableEasing = true;
+	char const* easingType = "Square";
+public:
+	std::string getVarByEnumID(int&Id) 
+	{
+		switch (Id) 
+		{
+		case 0:
+			return std::to_string(version);
+			break;
+		case 1:
+			return std::to_string(requestedMinFramerate);
+			break;
+		case 2:
+			return std::to_string(requestedMinFramerateMenus);
+			break;
+		case 3:
+			return std::to_string(requestedMinFramerateMovies);
+			break;
+		case 4:
+			return std::to_string(requestedMinFramerateNoFocus);
+			break;
+		case 5:
+			return std::to_string(mainThreadUpdateCoef);
+			break;
+		case 6:
+			return std::to_string(fov);
+			break;
+		case 7:
+			return std::to_string(gamma);
+			break;
+		case 8:
+			return std::to_string(igmState0Override);
+			break;
+		case 9:
+			return std::to_string(igmState1Override);
+			break;
+		case 10:
+			return std::to_string(igmState2Override);
+			break;
+		case 11:
+			return std::to_string(lockedMouseMulti);
+			break;
+		case 12:
+			return std::to_string(bEnableFullSpeedMode);
+			break;
+		case 13:
+			return std::to_string(bEnableAdaptiveIGM);
+			break;
+		case 14:
+			return std::to_string(bEnableAdaptiveMouse);
+			break;
+		case 15:
+			return std::to_string(bEnableLockedMouseMulti);
+			break;
+		case 16:
+			return std::to_string(bEnableTransitionSpeedRamp);
+			break;
+		case 17:
+			return std::to_string(bEnableEasing);
+			break;
+		case 18:
+			return easingType;
+			break;
+		}
+	}
+
+	template <typename T> void setByEnumID(int&Id, T&var);
+
+	template <> void setByEnumID<int>(int&Id, int&var) 
+	{
+		switch (Id)
+		{
+		case 0:
+			version = (int)var;
+			break;
+		}
+	}
+
+	template <> void setByEnumID<double>(int&Id, double&var)
+	{
+		switch (Id)
+		{
+		case 1:
+			requestedMinFramerate = (double)var;
+			break;
+		case 2:
+			requestedMinFramerateMenus = (double)var;
+			break;
+		case 3:
+			requestedMinFramerateMovies = (double)var;
+			break;
+		case 4:
+			requestedMinFramerateNoFocus = (double)var;
+			break;
+		case 5:
+			mainThreadUpdateCoef = (double)var;
+			break;
+		}
+	}
+
+	template <> void setByEnumID<float>(int&Id, float&var) 
+	{
+		switch (Id) 
+		{
+		case 6:
+			fov = (float)var;
+			break;
+		case 7:
+			gamma = (float)var;
+			break;
+		case 8:
+			igmState0Override = (float)var;
+			break;
+		case 9:
+			igmState1Override = (float)var;
+			break;
+		case 10:
+			igmState2Override = (float)var;
+			break;
+		case 11:
+			lockedMouseMulti = (float)var;
+			break;
+		}
+	}
+
+	template <> void setByEnumID<bool>(int&Id, bool&var) 
+	{
+		switch (Id) 
+		{
+		case 12:
+			bEnableFullSpeedMode = (bool)var;
+			break;
+		case 13:
+			bEnableAdaptiveIGM = (bool)var;
+			break;
+		case 14:
+			bEnableAdaptiveMouse = (bool)var;
+			break;
+		case 15:
+			bEnableLockedMouseMulti = (bool)var;
+			break;
+		case 16:
+			bEnableTransitionSpeedRamp = (bool)var;
+			break;
+		case 17:
+			bEnableEasing = (bool)var;
+			break;
+		}
+	}
+
+	template <> void setByEnumID<std::string>(int&Id, std::string&var)
+	{
+		switch (Id) 
+		{
+		case 18:
+			easingType = (const char*)var.c_str();
+			break;
+		}
+	}
 };
 
-namespace Config {
+namespace Config 
+{
 
-	int cVERSION = 1;
+	int cVERSION = 2;
+
+	template <typename T>
+	void setVal(int&i, T val, UserConfig&uConfig) 
+	{
+		uConfig.setByEnumID<T>(i, val);
+	}
+
+	void readConfigLine(std::string&inLine, UserConfig&uConfig) 
+	{
+		if (inLine.find("#") == inLine.npos || inLine.find("[") == inLine.npos)
+		{
+			std::cout << inLine << std::endl;
+			std::string refLine = inLine.substr(0, inLine.find("="));
+			for (int i = 0; i < numVars; i++) 
+			{
+				if (eConfigsName[i] == refLine) 
+				{
+					std::string val = inLine.substr(inLine.find("=") + 1);
+					switch (eConfigsTypes[i])
+					{
+					case 0:
+						setVal<int>(i, std::stoi(val.c_str()), uConfig);
+						break;
+					case 1:
+						setVal<float>(i, ::atof(val.c_str()), uConfig);
+						break;
+					case 2:
+						setVal<double>(i, stod(val.c_str()), uConfig);
+						break;
+					case 3:
+						setVal<bool>(i, stob(val), uConfig);
+						break;
+					case 4:
+						setVal<std::string>(i, val, uConfig);
+						break;
+					}
+				}
+			}
+		}
+	}
 
 	void newUserConfig(UserConfig&uConfig, std::fstream&config, const bool usePriorValues) 
 	{
@@ -52,40 +320,23 @@ namespace Config {
 		config.close();
 		config.open("fpsconfig.ini", std::fstream::in | std::fstream::out);
 
-		config
-			<< "#File version. Changing this will cause the config to update.\n"
-			<< "version=" << cVERSION << "\n\n"
-			<< "#In game frametime target. [Default: 60, Recommended: A limit that your PC can hit]\n"
-			<< "requestedMinFrameTime=" << (usePriorValues ? uConfig.requestedMinFrameTime : 90) << "\n\n"
-			<< "#Don't want superfast menus? [Default: 60, Recommended: Keep at 60]\n"
-			<< "requestedMinFrameTimeMenus=" << (usePriorValues ? uConfig.requestedMinFrameTimeMenus : 60) << "\n\n"
-			<< "#The frametime target when you are not tabbed into the game. [Default: 60, Recommended: <60]\n"
-			<< "requestedMinFrameTimeNoFocus=" << (usePriorValues ? uConfig.requestedMinFrameTimeNoFocus : 24) << "\n\n"
-			<< "#The frametime target when you are in a pre-rendered movie. [Default: 59.97, Reccomended: 59.97]\n"
-			<< "requestedMinFrameTimeMovie=" << (usePriorValues ? uConfig.requestedMinFrameTimeMovies : 59.97) << "\n\n"
-			<< "#The in-game field of view. [Default: 45, Recommended: User Preference]\n"
-			<< "Fov=" << (usePriorValues ? uConfig.fov : 45) << "\n\n"
-			<< "#The in game gamma (brightness). [Default: 45, Recommended: User Preference]\n"
-			<< "gamma=" << (usePriorValues ? uConfig.gamma : 45) << "\n\n"
-			<< "#How many times per frame should the main loop run? Raising this will increase the CPU usage of the program. If you're experiencing performance problems, consider lowering this.\n"
-			<< "#I suggest not going below one, because that will make the program much less accurate. 0 will crash the program. [Recommended: User Preference]\n"
-			<< "mainThreadUpdateCoef=" << (usePriorValues ? uConfig.mainThreadUpdateCoef : 1) << "\n\n"
-			<< "#IGMState overrides change the base multiplier for each state. [Default: 0=1, 1=2, 2=4, Recommended: User Preference]\n"
-			<< "igmState0Override=" << (usePriorValues ? uConfig.igmState0Override : 1) << "\n"
-			<< "igmState1Override=" << (usePriorValues ? uConfig.igmState1Override : 2) << "\n"
-			<< "igmState2Override=" << (usePriorValues ? uConfig.igmState2Override : 4) << "\n\n"
-			<< "#This works in conjunction with bEnableLockedMouseMulti and bEnableAdaptiveMouse. At least one of them must be enabled for this to be used. [Recommended: User Preference]\n"
-			<< "lockedMouseMulti=" << (usePriorValues ? uConfig.lockedMouseMulti : 1) << "\n\n"
-			<< "#If you want to completely disable the speed limiter, enable this. Might have some bad side effects. Setting the minimum frametime to 0 has the same effect, but is theoretically safer. [Recommended: keep off]\n"
-			<< "bEnableFullSpeedMode=" << (usePriorValues ? uConfig.bEnableFullSpeedMode : false) << "\n\n"
-			<< "#If your in game animations are running at an incorrect speed, enabling this option may help. [Recommended: keep on]\n"
-			<< "bEnableAdaptiveIGM=" << (usePriorValues ? uConfig.bEnableAdaptiveIGM : true) << "\n\n"
-			<< "#If you like the game's default sensitivity scaling, disable this. Enables my relative mouse speed algorithm. [Recommended: User Preference]\n"
-			<< "bEnableAdaptiveMouse=" << (usePriorValues ? uConfig.bEnableAdaptiveMouse : true) << "\n\n"
-			<< "#Enabling this will disable the in game mouse sensitivity controller, and lock the relative sensitivity to a desired variable. [Recommended: User Preference]\n"
-			<< "bEnableLockedMouseMulti=" << (usePriorValues ? uConfig.bEnableLockedMouseMulti : true) << "\n\n"
-			<< "#This attempts to fix the slowdowns that happen when changing scenes and entering/exiting some menus. Not perfect. [Recommended: keep on]\n"
-			<< "bEnableTransitionSpeedRamp=" << (usePriorValues ? uConfig.bEnableTransitionSpeedRamp : true) << "\n\n";
+		uConfig.version = cVERSION;
+
+		if (usePriorValues && uConfig.version < 2) 
+		{
+			remove("fpsconfig.ini");
+			std::cout << "Your config is not compatable with the new format... you must reconfigure!\n";
+		}
+		else 
+		{
+			//detect changes when it's needed, not atm so not implemented
+		}
+
+		for (int i = 0; i < numVars; i++) 
+		{
+			config << eConfigsDescription[i]
+				<< eConfigsName[i] << "=" << uConfig.getVarByEnumID(i) << "\n\n";
+		}
 
 		config.close();
 	}
@@ -105,121 +356,11 @@ namespace Config {
 			std::string inLine;
 			while (std::getline(config, inLine))
 			{
-				if (inLine.find("#") == inLine.npos)
-				{
-					refLine = inLine.substr(0, inLine.find("=") + 1);
-
-					if (refLine == "version=") 
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.version = std::stoi(val.c_str());
-					}
-					else if (refLine == "requestedMinFrameTime=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.requestedMinFrameTime = stod(val.c_str());
-					}
-					else if (refLine == "requestedMinFrameTimeMenus=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.requestedMinFrameTimeMenus = stod(val.c_str());
-					}
-					else if (refLine == "requestedMinFrameTimeMovies=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.requestedMinFrameTimeMovies = stod(val.c_str());
-					}
-					else if (refLine == "requestedMinFrameTimeNoFocus=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.requestedMinFrameTimeNoFocus = stod(val.c_str());
-					}
-					else if (refLine == "Fov=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.fov = ::atof(val.c_str());
-					}
-					else if (refLine == "gamma=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.gamma = ::atof(val.c_str());
-					}
-					else if (refLine == "mainThreadUpdateCoef=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.mainThreadUpdateCoef = stod(val.c_str());
-					}
-					else if (refLine == "igmState0Override=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.igmState0Override = ::atof(val.c_str());
-					}
-					else if (refLine == "igmState1Override=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.igmState1Override = ::atof(val.c_str());
-					}
-					else if (refLine == "igmState2Override=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.igmState2Override = ::atof(val.c_str());
-					}
-					else if (refLine == "lockedMouseMulti=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.lockedMouseMulti = ::atof(val.c_str());
-					}
-					else if (refLine == "bEnableFullSpeedMode=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.bEnableFullSpeedMode = stob(val);
-					}
-					else if (refLine == "bEnableAdaptiveIGM=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.bEnableAdaptiveIGM = stob(val);
-					}
-					else if (refLine == "bEnableAdaptiveMouse=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.bEnableAdaptiveMouse = stob(val);
-					}
-					else if (refLine == "bEnableLockedMouseMulti=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.bEnableLockedMouseMulti = stob(val);
-					}
-					else if (refLine == "bEnableTransitionSpeedRamp=")
-					{
-						std::string val = inLine.substr(inLine.find("=") + 1);
-						uConfig.bEnableTransitionSpeedRamp = stob(val);
-					}
-
-					refLine.clear();
-					inLine.clear();
-				}
+				readConfigLine(inLine, uConfig);
+				refLine.clear();
+				inLine.clear();
 			}
 			config.close();
-
-			std::cout << "Loaded config..."
-				<< "\nconfig version=" << uConfig.version << " cVersion=" << cVERSION
-				<< "\nrequestedMinFrameTime=" << uConfig.requestedMinFrameTime
-				<< "\nrequestedMinFrameTimeMenus=" << uConfig.requestedMinFrameTimeMenus
-				<< "\nrequestedMinFrameTimeMovies=" << uConfig.requestedMinFrameTimeMovies
-				<< "\nrequestedMinFrameTimeNoFocus=" << uConfig.requestedMinFrameTimeNoFocus
-				<< "\nmainThreadUpdateCoef=" << uConfig.mainThreadUpdateCoef
-				<< "\nfov=" << uConfig.fov
-				<< "\ngamma=" << uConfig.gamma
-				<< "\nigmState0Override=" << uConfig.igmState0Override
-				<< "\nigmState1Override=" << uConfig.igmState1Override
-				<< "\nigmState2Override=" << uConfig.igmState2Override
-				<< "\nlockedMouseMulti=" << uConfig.lockedMouseMulti
-				<< "\nbEnableFullSpeedMode=" << uConfig.bEnableFullSpeedMode
-				<< "\nbEnableAdaptiveIGM=" << uConfig.bEnableAdaptiveIGM
-				<< "\nbEnableAdaptiveMouse=" << uConfig.bEnableAdaptiveMouse
-				<< "\nbEnableLockedMouseMulti=" << uConfig.bEnableLockedMouseMulti
-				<< "\nbEnableTransitionSpeedRamp=" << uConfig.bEnableTransitionSpeedRamp
-				<< std::endl << std::endl;
 
 			if (uConfig.version != cVERSION) 
 			{
