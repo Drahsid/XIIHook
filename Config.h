@@ -18,14 +18,14 @@ enum typeConversion
 };
 
 //Might be a way to automate this
-uint64_t numVars = 19;
+uint64_t numVars = 18;
 #define dConfigs \
 sEnum(Version, "Version", "# File version. Changing this will cause the config to update.\n", typeConversion::toInt) \
 sEnum(Framerate, "Framerate", "# In game frametime target. [Default: 60, Recommended: A limit that your PC can hit]\n", typeConversion::toDouble)\
 sEnum(FramerateMenus, "Framerate_Menus", "# In game frametime target while in menus. [Default: 60, Recommended: A limit that your PC can hit]\n", typeConversion::toDouble)\
 sEnum(FramerateMovies, "Framerate_Movies", "# In game frametime target while viewing the in game movies/fmvs. [Default: 59.97, Recommended: Default]\n", typeConversion::toDouble)\
 sEnum(FramerateNoFocus, "Framerate_NoFocus", "# In game frametime target while the game window is not in focus. [Default: 60, Recommended: A lower value if the game is hogging resources]\n", typeConversion::toDouble)\
-sEnum(mainThreadUpdateCoef, "Main_Thread_Update_Coef", "# The number of times the main loop will run per frame. A higher number results in slightly more accurate predictions, but also increases cpu usage.[Recommended: 1]\n", typeConversion::toDouble)\
+sEnum(mainThreadUpdateCoef, "Main_Thread_Update_Coef", "# The number of times the main loop will run per frame. A higher number results in slightly more accurate predictions, but also slightly increases cpu usage. [Recommended: 2]\n", typeConversion::toDouble)\
 sEnum(Fov, "Field_of_View", "# The in-game Field of View. If you feel claustrophic, or that the viewing angle is too small, consider raising this. [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(Gamma, "Gamma", "# The in-game gamma (brightness). [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(IgmState0Override, "IGM_State0_Override", "# The 1x speed state of the in-game-multiplier. [Default: 1, Recommended: 1]\n", typeConversion::toFloat)\
@@ -33,12 +33,11 @@ sEnum(IgmState1Override, "IGM_State1_Override", "# The 2x speed state of the in-
 sEnum(IgmState2Override, "IGM_State2_Override", "# The 4x speed state of the in-game-multiplier. [Default: 4, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(LockedMouseMulti, "Locked_Mouse_Multi", "# The mouse speed multiplier. This works in conjunction with Enable_Locked_Mouse_Multi and Enable_Adaptive_Mouse. At least one of them must be enabled for this to be used. [Default: 2, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(EnableFullSpeedMode, "Enable_Full_Speed_Mode", "# Disable the framerate limit completely by erasing related opcodes. [Default: Off, Recommended: Off]\n", typeConversion::toBool)\
-sEnum(EnableAdaptiveIGM, "Enable_Adaptive_IGM", "# Enabling this will make the IGM will scale relativley to your framerate. Enable this if your animations are playing at incorrect speeds. [Default: Off, Recommended: Off]\n", typeConversion::toBool)\
 sEnum(EnableAdaptiveMouse, "Enable_Adaptive_Mouse", "# Enabling this will make the mouse speed scale relativley to your framerate AND to the in game multiplier. This fixes mouse speed issues found in the vanilla game. [Default: On, Recommended: On]\n", typeConversion::toBool)\
 sEnum(EnableLockedMouseMulti, "Enable_Locked_Mouse_Multi", "# Enabling this will stop the game from taking control over the mouse speed multiplier. This is ignored if Enable_Adaptive_Mouse is on. [Default: On, Recommended: On]\n", typeConversion::toBool)\
-sEnum(EnableTransitionSpeedRamp, "Enable_Transition_Speed_Ramp", "# Enabling this will set the time multiplier to 1x when in a scene transition. [Default: On, Recommended: On]\n", typeConversion::toBool)\
 sEnum(EnableEasing, "Enable_Easing", "# Enabling this will cause certain variables to ease when they are changed, such as the IGM. [Default: On, Recommended: User Preference]\n", typeConversion::toBool)\
-sEnum(EasingType, "EasingType", "# This value can be set to Linear, OnePointFive, Square, Cubic, Quad, Quint, or Sine. This changes the default equation used to smooth out igm changes, where linear is flat, and quint is the sharpest. [Default: Square, Recommended: User Preference]\n", typeConversion::toStr)
+sEnum(EasingType, "EasingType", "# This value can be set to Linear, OnePointFive, Square, Cubic, Quad, Quint, Sine, SinSq, SinInvSq, PerlinFast, or Perlin. This changes the default equation used to smooth out igm changes, where linear is flat, and quint is the sharpest. [Default: SinSq, Recommended: User Preference]\n# You can find a visualization of the different easing types here: desmos.com/calculator/l1jiznfdof \n", typeConversion::toStr)\
+sEnum(EasingTime, "EasingTime", "# The time taken to ease into the next igm state. [Default: 0.5, Recommended: User Preference]\n", typeConversion::toDouble)
 
 #define sEnum(eName, sName, sDesc, iType) eName,
 enum eConfigs : size_t
@@ -95,7 +94,7 @@ public:
 	double requestedMinFramerateMenus = 60;
 	double requestedMinFramerateMovies = 59.978;
 	double requestedMinFramerateNoFocus = 30;
-	double mainThreadUpdateCoef = 1;
+	double mainThreadUpdateCoef = 3;
 	float fov = 45;
 	float gamma = 45;
 	float igmState0Override = 1;
@@ -103,12 +102,11 @@ public:
 	float igmState2Override = 4;
 	float lockedMouseMulti = 2;
 	bool bEnableFullSpeedMode = false;
-	bool bEnableAdaptiveIGM = false;
 	bool bEnableAdaptiveMouse = true;
 	bool bEnableLockedMouseMulti = true;
-	bool bEnableTransitionSpeedRamp = true;
 	bool bEnableEasing = true;
-	char const* easingType = "Square";
+	char const* easingType = "SinSq";
+	double easingTime = 0.5;
 public:
 	std::string getVarByEnumID(int&Id) 
 	{
@@ -154,24 +152,23 @@ public:
 			return std::to_string(bEnableFullSpeedMode);
 			break;
 		case 13:
-			return std::to_string(bEnableAdaptiveIGM);
-			break;
-		case 14:
 			return std::to_string(bEnableAdaptiveMouse);
 			break;
-		case 15:
+		case 14:
 			return std::to_string(bEnableLockedMouseMulti);
 			break;
-		case 16:
-			return std::to_string(bEnableTransitionSpeedRamp);
-			break;
-		case 17:
+		case 15:
 			return std::to_string(bEnableEasing);
 			break;
-		case 18:
+		case 16:
 			return easingType;
 			break;
+		case 17:
+			return std::to_string(easingTime);
+			break;
 		}
+
+		return "";
 	}
 
 	template <typename T> void setByEnumID(int&Id, T&var);
@@ -204,6 +201,9 @@ public:
 			break;
 		case 5:
 			mainThreadUpdateCoef = (double)var;
+			break;
+		case 17:
+			easingTime = (double)var;
 			break;
 		}
 	}
@@ -241,18 +241,12 @@ public:
 			bEnableFullSpeedMode = (bool)var;
 			break;
 		case 13:
-			bEnableAdaptiveIGM = (bool)var;
-			break;
-		case 14:
 			bEnableAdaptiveMouse = (bool)var;
 			break;
-		case 15:
+		case 14:
 			bEnableLockedMouseMulti = (bool)var;
 			break;
-		case 16:
-			bEnableTransitionSpeedRamp = (bool)var;
-			break;
-		case 17:
+		case 15:
 			bEnableEasing = (bool)var;
 			break;
 		}
@@ -262,7 +256,7 @@ public:
 	{
 		switch (Id) 
 		{
-		case 18:
+		case 16:
 			easingType = (const char*)var.c_str();
 			break;
 		}
@@ -272,7 +266,7 @@ public:
 namespace Config 
 {
 
-	int cVERSION = 2;
+	int cVERSION = 3;
 
 	template <typename T>
 	void setVal(int&i, T val, UserConfig&uConfig) 
@@ -282,7 +276,7 @@ namespace Config
 
 	void readConfigLine(std::string&inLine, UserConfig&uConfig) 
 	{
-		if (inLine.find("#") == inLine.npos || inLine.find("[") == inLine.npos)
+		if (inLine.find("#") == inLine.npos && inLine.find("[") == inLine.npos && inLine.find(",") == inLine.npos)
 		{
 			std::cout << inLine << std::endl;
 			std::string refLine = inLine.substr(0, inLine.find("="));
@@ -326,10 +320,6 @@ namespace Config
 		{
 			remove("fpsconfig.ini");
 			std::cout << "Your config is not compatable with the new format... you must reconfigure!\n";
-		}
-		else 
-		{
-			//detect changes when it's needed, not atm so not implemented
 		}
 
 		for (int i = 0; i < numVars; i++) 
