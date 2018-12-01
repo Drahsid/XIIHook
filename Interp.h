@@ -116,6 +116,7 @@ namespace Interp
 				return position;
 				break;
 			}
+			return 1;
 		}
 
 		Interp() {}
