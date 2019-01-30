@@ -30,6 +30,21 @@
     <ClInclude Include="md5.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utility.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dHook.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dDraw.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DMenu.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

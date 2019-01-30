@@ -1,3 +1,6 @@
+#ifndef INTERP_H 
+#define INTERP_H
+
 #include <math.h>
 
 #pragma once
@@ -123,4 +126,8 @@ namespace Interp
 	};
 
 }
+
+#endif
+
+
 

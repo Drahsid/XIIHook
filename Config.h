@@ -276,7 +276,7 @@ namespace Config
 	{
 		if (inLine.find("#") == inLine.npos && inLine.find("[") == inLine.npos && inLine.find(",") == inLine.npos)
 		{
-			std::cout << inLine << std::endl;
+			printf("%s\n", inLine.c_str());
 			std::string refLine = inLine.substr(0, inLine.find("="));
 			for (int i = 0; i < numVars; i++) 
 			{
@@ -317,7 +317,7 @@ namespace Config
 		if (usePriorValues && uConfig.version < 2) 
 		{
 			remove("fpsconfig.ini");
-			std::cout << "Your config is not compatable with the new format... you must reconfigure!\n";
+			printf("Your config is not compatable with the new format... you must reconfigure!\n");
 		}
 
 		for (int i = 0; i < numVars; i++) 
@@ -335,7 +335,7 @@ namespace Config
 		config.open("fpsconfig.ini", std::fstream::in | std::fstream::out);
 		if (!config)
 		{
-			std::cout << "Config file not found! Writing a new one...\n\n";
+			printf("Config file not found! Writing a new one...\n\n");
 			newUserConfig(uConfig, config, false);
 		}
 		else
@@ -352,7 +352,7 @@ namespace Config
 
 			if (uConfig.version != cVERSION) 
 			{
-				std::cout << "Config out of date! Updating...\n";
+				printf("Config out of date! Updating...\n");
 				newUserConfig(uConfig, config, true);
 			}
 
