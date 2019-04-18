@@ -2,7 +2,6 @@
 #define D3DMenu_H
 
 #include "pch.h"
-#include "D3DMenu.h"
 #include "d3dDraw.h"
 #include "Config.h"
 

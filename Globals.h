@@ -12,10 +12,10 @@
 #define NOP 0x90 //NOP instruction TODO: replace NOP strings with cleaner code using this
 
 //In-game pointers
-#define tftPtr 0x0090D398 //Min Frametime 1
-#define tft1Ptr 0x0090E0C0 //Min Frametime 2 (Doesn't seem to do anything)
-#define rftPtr 0x01F97058  //Reported frametime 1
-#define rft1Ptr 0x01F98170 //Reported frametime 2 (Not to be trusted)
+#define minFrameTimePtr 0x0090D398 //Min Frametime 1
+#define minFrameTime1Ptr 0x0090E0C0 //Min Frametime 2 (Doesn't seem to do anything)
+#define realFrameTimePtr 0x01F97058  //Reported frametime 1
+#define realFrameTime1Ptr 0x01F98170 //Reported frametime 2 (Not to be trusted)
 #define igmPtr 0x0207D798 /*
 In game multiplier
 Generally becomes 1,2,4 though you can make it anything. Disabling instructions related to this can have some weird results.
@@ -24,11 +24,11 @@ Generally becomes 1,2,4 though you can make it anything. Disabling instructions 
 Wolrd multiplier (Eg skies and grass anims) @ < 1 this freezes the game, but there is still camera control
 This is equal to the igm * the global time multiplier * (*=usually)
 */
-#define mouseMPtr 0x01E1A820 /*
+#define mouseCoefPtr 0x01E1A820 /*
 Mouse ~~multiplier~~ Min angle coef
 Realative to all other multipliers
 */
-#define tScalePtr 0x0207D79C /*
+#define timeScalePtr 0x0207D79C /*
 Global time multiplier
 When I found this everything else made so much more sense, this is what we will be changing
 */
@@ -36,26 +36,27 @@ When I found this everything else made so much more sense, this is what we will 
 1 at 30 fps, 0.5 at 60
 This should fix everything.
 */
-#define igmSPtr 0x01FED754 /*
+#define animationBaseRatePtr 0x00905DA0
+#define igmStatePtr 0x01FED754 /*
 Currently selected state of igmptr
 */
-#define uiOPtr 0x01E160C0 //Menu enabled
-#define titlPtr 0x020A3380 //0 In game 1 In title
+#define uiEnabledPtr 0x01E160C0 //Menu enabled
+#define inTitlePtr 0x020A3380 //0 In game 1 In title
 //Instruction pointers
-#define cMenPtr 0x01FED3A4 /*
+#define inCombatMenPtr 0x01FED3A4 /*
 Combat menu pointer.
 */
-#define cScenePtr 0x020AB454 /*
+#define inCScenePtr 0x020AB454 /*
 In cutscene pointer, is 1 when in a cutscene or at the title.
 */
-#define moviePtr 0x022C0C51 /*
+#define inMoviePtr 0x022C0C51 /*
 In Move pointer, is 1 when in a movie.
 */
 #define gammaPtr 0x00900150 /*
 In game gamma
 */
 #define mouseFPtr 0x01F111E0 /*
-Chaning this does some weird stuff to the input
+Changing this does some weird stuff to the input
 */
 #define fovPtr 0x020B0258 /*
 The in game FOV. This does not effect cutscenes (They use different camera)
@@ -88,21 +89,34 @@ Fixes fullscreen problem
 This is overwritten to fix the lock that happens when a character uses an AOE, Mist, or Summon.
 This was caused when the FPS coef was not 1 or 0.5 and a register recieved no value
 */
-#define D3D11EndScene 0x7FFAD2985070 /*DX11*/
+#define setAnimationRatePtr 0x075D3341 /*0x075D3330 /*
+This subroutine sets the precomputed animation rates of each object which uses them.
+I assume the original developers decided to waste more memory in favor of faster code, though they could have still saved memory by only doing this once.
+*/
+#define animDummyPtr 0x01E160D4 /*
+The address which addresses will be moved onto after patch
+*/
+#define ftUpdatePtr 0x0B94C262 /*
+The secondary frametime gets updates on this instruction.
+*/
 
-namespace {
-	extern IDirect3D9Ex* p_Object = 0;
-	extern IDirect3DDevice9Ex* p_Device = 0;
-	extern D3DPRESENT_PARAMETERS p_Params;
-	extern ID3DXLine* p_Line = 0;
-	extern ID3DXFont* pFontSmall = 0;
-	extern ID3DXFont* pFontSmaller = 0;
-	extern ID3DXFont* pFontSmallest = 0;
-	extern ID3DXFont* pFontLarge = 0;
+#ifndef DLL_BUILD
 
-	extern int Width = 1920;
-	extern int Height = 1080;
-}
+	namespace {
+		extern IDirect3D9Ex* p_Object = 0;
+		extern IDirect3DDevice9Ex* p_Device = 0;
+		extern D3DPRESENT_PARAMETERS p_Params;
+		extern ID3DXLine* p_Line = 0;
+		extern ID3DXFont* pFontSmall = 0;
+		extern ID3DXFont* pFontSmaller = 0;
+		extern ID3DXFont* pFontSmallest = 0;
+		extern ID3DXFont* pFontLarge = 0;
+
+		extern int Width = 1920;
+		extern int Height = 1080;
+	}
+#endif
+
 #endif
 
 

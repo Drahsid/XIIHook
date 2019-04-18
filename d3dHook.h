@@ -2,7 +2,7 @@
 #define D3DHOOK_H
 
 #include "pch.h"
-#include "D3DMenu.h"
+#include "d3dMenu.h"
 #include "Config.h"
 
 //TODO: Get image data from the game and belnd transparency

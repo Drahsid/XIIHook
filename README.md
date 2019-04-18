@@ -1,3 +1,7 @@
+# Note
+Code is currently being refactored
+Furthermore, the program no longer works since 4/18/19 after the 1.0.3.0 update; I am working on finding the new pointers. Running the program results in a crash.
+
 # FFXIITZA-FPS-Unlocker
 This mod allows for you to unlock the full potential of your system and to run Final Fantasy XII at whatever framerate you desire! This also comes with some other goodies, such as the ability to modify the in-game multiplier variables to anything, focus-based framerate scaling, and more!
 
