@@ -12,93 +12,157 @@
 #define NOP 0x90 //NOP instruction TODO: replace NOP strings with cleaner code using this
 
 //In-game pointers
-#define minFrameTimePtr 0x0090D398 //Min Frametime 1
-#define minFrameTime1Ptr 0x0090E0C0 //Min Frametime 2 (Doesn't seem to do anything)
-#define realFrameTimePtr 0x01F97058  //Reported frametime 1
-#define realFrameTime1Ptr 0x01F98170 //Reported frametime 2 (Not to be trusted)
-#define igmPtr 0x0207D798 /*
+#define minFrameTimePtr 0x008FE378		//0x0090D398 //Min Frametime 1
+#define minFrameTime1Ptr 0x008FF0A0		//0x0090E0C0 //Min Frametime 2 (Doesn't seem to do anything)
+#define realFrameTimePtr 0x01F7C358		//0x01F97058 //Reported frametime 1
+#define realFrameTime1Ptr 0x01F7D470	//0x01F98170 //Reported frametime 2 (Not to be trusted)
+
+/*
 In game multiplier
 Generally becomes 1,2,4 though you can make it anything. Disabling instructions related to this can have some weird results.
 */
-#define worldMPtr 0x0207D794 /*
+#define igmPtr 0x2062A88 //0x0207D798
+
+/*
 Wolrd multiplier (Eg skies and grass anims) @ < 1 this freezes the game, but there is still camera control
 This is equal to the igm * the global time multiplier * (*=usually)
 */
-#define mouseCoefPtr 0x01E1A820 /*
+#define worldMPtr 0x02062A84 //0x0207D794 
+
+/*
 Mouse ~~multiplier~~ Min angle coef
 Realative to all other multipliers
 */
-#define timeScalePtr 0x0207D79C /*
+#define mouseCoefPtr 0x01E00820 //0x01E1A820 
+
+/*
 Global time multiplier
 When I found this everything else made so much more sense, this is what we will be changing
 */
-#define framerateCoefPtr 0x01E160BC /*
+#define timeScalePtr 0x02062A8C //0x0207D79C 
+
+/*
 1 at 30 fps, 0.5 at 60
 This should fix everything.
 */
-#define animationBaseRatePtr 0x00905DA0
-#define igmStatePtr 0x01FED754 /*
-Currently selected state of igmptr
+
+#define framerateCoefPtr 0x1DFC0BC //0x01E160BC 
+
+#define animationBaseRatePtr 0x008F6D80 //0x00905DA0
+
+/*
+Currently selected state of igm
 */
-#define uiEnabledPtr 0x01E160C0 //Menu enabled
-#define inTitlePtr 0x020A3380 //0 In game 1 In title
+#define igmStatePtr 0x01FD2A44 //0x01FED754
+
+#define uiEnabledPtr 0x01DFC0C0 //0x01E160C0 //Menu enabled
+
+#define inTitlePtr 0x2088680 //0x020A3380 //0 In game 1 In title
+
 //Instruction pointers
-#define inCombatMenPtr 0x01FED3A4 /*
+
+/*
 Combat menu pointer.
 */
-#define inCScenePtr 0x020AB454 /*
+#define inCombatMenPtr 0x01FD2694 //0x01FED3A4
+
+/*
 In cutscene pointer, is 1 when in a cutscene or at the title.
 */
-#define inMoviePtr 0x022C0C51 /*
+#define inCScenePtr 0x2090754 //0x020AB454 
+
+/*
 In Move pointer, is 1 when in a movie.
 */
-#define gammaPtr 0x00900150 /*
+#define inMoviePtr 0x215D1C2 //0x022C0C51
+
+/*
 In game gamma
 */
-#define mouseFPtr 0x01F111E0 /*
+#define gammaPtr 0x008F1130 //0x00900150
+
+/*
 Changing this does some weird stuff to the input
 */
-#define fovPtr 0x020B0258 /*
+#define mouseFPtr 0x01F111E0
+
+/*
 The in game FOV. This does not effect cutscenes (They use different camera)
 */
-#define gammaPtr 0x00900150 /*
-The in game gamma.
-*/
-#define shadowTypePtr 0x0090FF10 /*
+#define fovPtr 0x02095558 //0x020B0258 
+
+/*
 One byte, 0-6 (modulus) changes quality of shadow.
 */
-#define igmUnlockPtr 0x0022AC27 /*
-First overwrite to fully control the igm*/
-#define igmUnlockPtr0 0x0022AC1D /*
-Second overwrite to fully control the igm*/
-#define igmUnlockPtr1 0x0022AC1D /*
-Third overwrite to fully control the igm*/
-#define igmUnlockPtr2 0x04556E00
-#define igmUnlockPtr3 0x0022AC3A
-#define mouseUnlockPtr 0x0022AC58 /*
-Instruction writes to the mouse multi.*/
-#define mouseUnlockPtr0 0x04551428 /*
-Instruction writes to the mouse multi.
+#define shadowTypePtr 0x0090FF10
+
+
+
+
+/*
+First overwrite to fully control the igm
 */
-#define fullSpeedUnlockPtr 0x00622274 /*
-Erasing this results in completely unlocked framerate*/
-#define fovUnlockPtr 0x06E63EE0 /*
+#define igmUnlockPtr 0x0022A847 //0x0022AC27 
+
+/*
+Second overwrite to fully control the igm
+*/
+#define igmUnlockPtr0 0x0022A83D //0x0022AC1D
+
+/*
+Third overwrite to fully control the igm
+*/
+#define igmUnlockPtr1 0x04556E00 //No longer in 1.0.3?!
+
+#define igmUnlockPtr2 0x0022AC3A //No longer in 1.0.3?!
+
+/*
+Instruction writes to the mouse multi
+*/
+#define mouseUnlockPtr 0x0022A878 //0x0022AC58
+
+/*
+Instruction writes to the mouse multi
+*/
+#define mouseUnlockPtr0 0x04551428 //No longer a second sub in 1.0.3?!
+
+/*
+Erasing this results in completely unlocked framerate
+*/
+#define fullSpeedUnlockPtr 0x00622274 
+
+/*
 Fixes fullscreen problem
 */
-#define actionAoeFixPtr 0x0024B840 /*
+#define fovUnlockPtr 0x06E63EE0 //Nothing seems to activley write in 1.0.3?!
+
+/*
 This is overwritten to fix the lock that happens when a character uses an AOE, Mist, or Summon.
 This was caused when the FPS coef was not 1 or 0.5 and a register recieved no value
 */
-#define setAnimationRatePtr 0x075D3341 /*0x075D3330 /*
+#define actionAoeFixPtr 0x0024B840 
+
+/*
 This subroutine sets the precomputed animation rates of each object which uses them.
 I assume the original developers decided to waste more memory in favor of faster code, though they could have still saved memory by only doing this once.
 */
-#define animDummyPtr 0x01E160D4 /*
+#define setAnimationRatePtr 0x075D3341 //0x075D3330 
+
+/*
 The address which addresses will be moved onto after patch
 */
-#define ftUpdatePtr 0x0B94C262 /*
+#define animDummyPtr 0x01E160D4 
+
+/*
 The secondary frametime gets updates on this instruction.
 */
+#define ftUpdatePtr 0x0B94C262 
+
+/*
+Overwrite to modify cutscene timescale
+*/
+#define cutsceneTimeScalePtr 0x06BB6240
+
 
 #ifndef DLL_BUILD
 

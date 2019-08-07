@@ -45,6 +45,7 @@ struct gameVars
 		uConfig.requestedMinFramerateNoFocus = 1 / uConfig.requestedMinFramerateNoFocus;
 		uConfig.requestedMinFramerateMovies = 1 / uConfig.requestedMinFramerateMovies;
 		uConfig.fov = uConfig.fov * Rad2Deg;
+		printf("Config done... \n");
 	}
 
 };
@@ -65,6 +66,21 @@ __forceinline void SetConTAttribute(HANDLE h, WORD w, std::string s = "", ...)
 
 }
 
+__forceinline float getIGM(gameVars& gVars, bool current) {
+	switch (current) {
+	case true:
+		return	*gVars.igmState == 0 ? gVars.uConfig.igmState0Override
+			:	*gVars.igmState == 1 ? gVars.uConfig.igmState1Override 
+			:	gVars.uConfig.igmState2Override;
+		break;
+
+	case false:
+		return	gVars.lastigm == 0 ? gVars.uConfig.igmState0Override
+			:	gVars.lastigm == 1 ? gVars.uConfig.igmState1Override
+			:	gVars.uConfig.igmState2Override;
+		break;
+	}
+}
 
 void tick_interp(gameVars& gVars)
 {
@@ -72,10 +88,8 @@ void tick_interp(gameVars& gVars)
 
 	if (!gVars.gameStateEnum == 1 && !*gVars.inCutscene == 1 && gVars.lastigm != *gVars.igmState)
 	{
-		float base0 = (gVars.lastigm == 0 ? gVars.uConfig.igmState0Override
-			: (gVars.lastigm == 1 ? gVars.uConfig.igmState1Override : gVars.uConfig.igmState2Override));
-		float base = (gVars.igmState == 0 ? gVars.uConfig.igmState0Override
-			: (*gVars.igmState == 1 ? gVars.uConfig.igmState1Override : gVars.uConfig.igmState2Override));
+		float base0 = getIGM(gVars, false);
+		float base = getIGM(gVars, true);
 
 		gVars.igmInterp.position = base0;
 		gVars.igmInterp.position0 = base0;
@@ -93,13 +107,11 @@ void tick_interp(gameVars& gVars)
 		case true:
 			base = gVars.igmInterp.interp(nTime);
 
-			if (nTime > gVars.igmInterp.time1) base = (gVars.igmState == 0 ? gVars.uConfig.igmState0Override
-				: (*gVars.igmState == 1 ? gVars.uConfig.igmState1Override : gVars.uConfig.igmState2Override));
+			if (nTime > gVars.igmInterp.time1) base = getIGM(gVars, true);
 			if (base != base || base == 0) base = 1; //If NaN set to 1
 			break;
 		case false:
-			base = (*gVars.igmState == 0 ? gVars.uConfig.igmState0Override
-				: (*gVars.igmState == 1 ? gVars.uConfig.igmState1Override : gVars.uConfig.igmState2Override));
+			base = getIGM(gVars, true);
 			break;
 		}
 
@@ -179,51 +191,24 @@ void updateMouse(gameVars& gVars) {
 		: gVars.uConfig.lockedMouseMulti;
 }
 
-
-/*
-DETOURED METHODS
-*/
-
-void fixAnimRates(gameVars& gVars, std::vector<volatile float*>& animRates) {
-	for (int i = 0; i < animRates.size(); i++) {
-		*animRates[i] = 1;//*gVars.framerateCoef * 30;
-	}
-}
-
-void setAnimationRate(gameVars& gVars, std::vector<volatile float*>& animRates)
-{
-	bool dontWrite = false;
-
-	for (int i = 0; i < animRates.size(); i++)
-		if (gVars.animDummy == animRates[i]) dontWrite = true;
-
-	printf("%p\n", (float*)& gVars.animDummy);
-
-	if (!dontWrite)
-		animRates.push_back((float*)gVars.animDummy);
-}
-
-
 void Step(gameVars& gVars, std::vector<volatile float*>& animRates) {
 	//Fix page permissions
 	DWORD protection;
 	VirtualProtect((LPVOID)minFrameTimePtr, sizeof(double), PAGE_READWRITE, &protection);
 	VirtualProtect((LPVOID)minFrameTime1Ptr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)timeScalePtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)framerateCoefPtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)worldMPtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)igmPtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)mouseCoefPtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)gammaPtr, sizeof(double), PAGE_READWRITE, &protection);
-	VirtualProtect((LPVOID)fovPtr, sizeof(double), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)timeScalePtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)framerateCoefPtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)worldMPtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)igmPtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)mouseCoefPtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)gammaPtr, sizeof(float), PAGE_READWRITE, &protection);
+	VirtualProtect((LPVOID)fovPtr, sizeof(float), PAGE_READWRITE, &protection);
 
 	updateGState(gVars);
 	updateFPSCoef(gVars);
 	updateMouse(gVars);
 	gVars.cTime = ((double)clock() / CLOCKS_PER_SEC);
 	tickf(gVars);
-	setAnimationRate(gVars, animRates);
-	fixAnimRates(gVars, animRates);
 }
 
 

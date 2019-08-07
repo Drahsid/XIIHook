@@ -25,7 +25,7 @@ sEnum(FramerateMovies, "Framerate_Movies", "# In game frametime target while vie
 sEnum(FramerateNoFocus, "Framerate_NoFocus", "# In game frametime target while the game window is not in focus. [Default: 60, Recommended: A lower value if the game is hogging resources]\n", typeConversion::toDouble)\
 sEnum(mainThreadUpdateCoef, "Main_Thread_Update_Coef", "# The number of times the main loop will run per frame. A higher number results in slightly more accurate predictions, but also slightly increases cpu usage. [Recommended: 2]\n", typeConversion::toDouble)\
 sEnum(Fov, "Field_of_View", "# The in-game Field of View. If you feel claustrophic, or that the viewing angle is too small, consider raising this. [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
-sEnum(Gamma, "Gamma", "# The in-game gamma (brightness). [Default: 45, Recommended: User Preference]\n", typeConversion::toFloat)\
+sEnum(Gamma, "Gamma", "# The in-game gamma (brightness). [Default: 50, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(IgmState0Override, "IGM_State0_Override", "# The 1x speed state of the in-game-multiplier. [Default: 1, Recommended: 1]\n", typeConversion::toFloat)\
 sEnum(IgmState1Override, "IGM_State1_Override", "# The 2x speed state of the in-game-multiplier. [Default: 2, Recommended: User Preference]\n", typeConversion::toFloat)\
 sEnum(IgmState2Override, "IGM_State2_Override", "# The 4x speed state of the in-game-multiplier. [Default: 4, Recommended: User Preference]\n", typeConversion::toFloat)\
@@ -94,7 +94,7 @@ public:
 	double requestedMinFramerateNoFocus = 30;
 	double mainThreadUpdateCoef = 3;
 	float fov = 45;
-	float gamma = 45;
+	float gamma = 50;
 	float igmState0Override = 1;
 	float igmState1Override = 2;
 	float igmState2Override = 4;

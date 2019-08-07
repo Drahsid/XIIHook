@@ -12,25 +12,21 @@ namespace
 	static gameVars gVars;
 	static std::vector<volatile float*> animRates;
 	bool breakStep = false;
+	DWORD threadID;
+	HANDLE asyncHandle;
 }
 
-void CallStep() {
-	Step(gVars, animRates);
-}
+DWORD WINAPI asyncThread(LPVOID lpParameter) {
+	for (;;) {
+		Step(gVars, animRates);
+		if (breakStep) break;
+	}
 
-void CallSetAnimRate() {
-	setAnimationRate(gVars, animRates);
+	return 0;
 }
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID reserved)
 {
-	void* animRoutineAddr = (void*)setAnimationRatePtr;
-	void* updateRoutineAddr = (void*)ftUpdatePtr;
-
-	if (DetourIsHelperProcess()) {
-		return TRUE;
-	}
-
 	switch(dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
@@ -42,27 +38,14 @@ BOOL WINAPI DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID reserved)
 
 		myHInst = &hInst;
 		myHandle = GetCurrentProcess();
-
-		/*DetourRestoreAfterWith();
-		DetourTransactionBegin();
-		DetourUpdateThread(GetCurrentThread());
-		DetourAttach(&animRoutineAddr, CallSetAnimRate);
-		DetourTransactionCommit();*/
-
-		for (;;) {
-			CallStep();
-			if (breakStep) break;
-		}
-
+		asyncHandle = CreateThread(0, 0, asyncThread, 0, 0, &threadID);
+		
 		break;
 
 	case DLL_PROCESS_DETACH:
 		breakStep = true;
-		/*FreeConsole();
-		DetourTransactionBegin();
-		DetourUpdateThread(GetCurrentThread());
-		DetourDetach(&animRoutineAddr, CallSetAnimRate);
-		DetourTransactionCommit();*/
+		FreeConsole();
+		CloseHandle(asyncHandle);
 		break;
 
 	}
