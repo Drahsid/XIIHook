@@ -38,7 +38,7 @@ BOOL WINAPI DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID reserved)
 
 		myHInst = &hInst;
 		myHandle = GetCurrentProcess();
-		asyncHandle = CreateThread(0, 0, asyncThread, 0, 0, &threadID);
+		asyncHandle = CreateThread(NULL , NULL, asyncThread, NULL, NULL, &threadID);
 		
 		break;
 
