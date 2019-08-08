@@ -1,10 +1,10 @@
 #pragma once
 
-#ifndef VECTOR3H
-#define VECTOR3H
+#ifndef VECTOR3_H
+#define VECTOR3_H
 
 #include <inttypes.h>
-#include "pch.h"
+#include <string>
 
 template <class T>
 struct Vector3Base
@@ -22,26 +22,29 @@ struct Vector3Base
 	Vector3Base(T _x, T _y, T _z) : x(_x), y(_y), z(_z) {}
 	Vector3Base(const Vector3Base&rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
 
-
-	Vector3Base operator +	(const Vector3Base	&rhs) { x += rhs.x; y += rhs.y; z += rhs.z; 			return *this; }
-	Vector3Base operator -	(const Vector3Base	&rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z;				return *this; }
+	Vector3Base&operator =  (const Vector3Base	&rhs) { x = rhs.x; y = rhs.y; z = rhs.z;				return *this; }
+	Vector3Base&operator +	(const Vector3Base	&rhs) { x += rhs.x; y += rhs.y; z += rhs.z; 			return *this; }
+	Vector3Base&operator -	(const Vector3Base	&rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z;				return *this; }
 	Vector3Base&operator += (const Vector3Base	&rhs) { x += rhs.x; y += rhs.y; z += rhs.z;				return *this; }
 	Vector3Base&operator -= (const Vector3Base	&rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z;				return *this; }
-	Vector3Base operator *	(const Vector3Base	&rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; 			return *this; }
-	Vector3Base operator /	(const Vector3Base	&rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z;				return *this; }
+	Vector3Base&operator *	(const Vector3Base	&rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; 			return *this; }
+	Vector3Base&operator /	(const Vector3Base	&rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z;				return *this; }
 	Vector3Base&operator *= (const Vector3Base	&rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z;				return *this; }
 	Vector3Base&operator /= (const Vector3Base	&rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z;				return *this; }
-	Vector3Base operator *	(const T			&rhs) { x *= rhs; y *= rhs; z *= rhs;					return *this; }
-	Vector3Base operator /	(const T			&rhs) { x /= rhs; y /= rhs;	z /= rhs;					return *this; }
+
+	Vector3Base&operator =  (const T			&rhs) { x = rhs; y = rhs; z = rhs;						return *this; }
+	Vector3Base&operator *	(const T			&rhs) { x *= rhs; y *= rhs; z *= rhs;					return *this; }
+	Vector3Base&operator /	(const T			&rhs) { x /= rhs; y /= rhs;	z /= rhs;					return *this; }
 	Vector3Base&operator *= (const T			&rhs) { x *= rhs; y *= rhs; z *= rhs;					return *this; }
 	Vector3Base&operator /= (const T			&rhs) { x /= rhs; y /= rhs;	z /= rhs;					return *this; }
 	
-	Vector3Base operator-() { return Vector3Base<T>(-x, -y, -z); }
+	
+	Vector3Base&operator-() { return Vector3Base<T>(-x, -y, -z); }
 	
 	bool operator==(const Vector3Base&rhs) { return x == rhs.x && y == rhs.y && z == rhs.z; }
-	bool operator!=(const Vector3Base&rhs) { return !(x == rhs.x && y == rhs.y && z == rhs.z); }
+	bool operator!=(const Vector3Base&rhs) { return x != rhs.x || y != rhs.y || z != rhs.z; }
 
-	T&operator []	(uint32_t i) { return *((T*)this + i); }
+	T&operator []	(const uint32_t i)		{ return *((T*)this[i]); }
 
 	friend std::ostream& operator<<(std::ostream&lhs, const Vector3Base&rhs) {
 		return lhs << "( " << rhs.x << ", " << rhs.y << ", " << rhs.z << " )";

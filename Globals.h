@@ -66,6 +66,8 @@ Currently selected state of igm
 #define cameraRollPtr			0x02094504
 
 
+
+
 //Instruction pointers
 
 /*

@@ -195,6 +195,7 @@
     <ClInclude Include="Input.h" />
     <ClInclude Include="Interp.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>

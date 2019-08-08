@@ -3,7 +3,7 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include "Vector3.h"
+#include "pch.h"
 #include "Input.h"
 
 void Print(const char *fmt, ...) {

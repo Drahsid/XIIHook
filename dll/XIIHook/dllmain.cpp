@@ -4,6 +4,7 @@
 #include "Interp.h"
 #include "Config.h"
 #include "Utility.h"
+#include "Input.h"
 
 namespace
 {
@@ -18,6 +19,7 @@ namespace
 	Vector3f lfwd, lrgh;
 	Vector3f wishpos;
 	Vector3f wishlookatpos;
+	Vector3f lastPos;
 }
 
 DWORD WINAPI asyncThread(LPVOID lpParameter) {
@@ -42,12 +44,13 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 		Print("Failed to overwrite igm unlock instructions[0]\n");
 
 	v3 = Vector3f();
-	Vector3f wishlookatpos = Vector3f();
+	wishlookatpos = v3;
+	wishpos = v3;
+	lastPos = v3;
 	lfwd = Vector3f(0, 0, 1);
 	lrgh = Vector3f(1, 0, 0);
-	wishpos = Vector3f();
+	
 	bool posChanged = false;
-	Vector3f lastPos = v3;
 
 	for (;;) {
 		Step(gVars);
@@ -112,54 +115,11 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			fwd = (cameraLookAt - cameraPos).Normalized();
 			rgh = fwd.Cross(up).Normalized();
 
-			if (fwd.Magnitude() != 0) lfwd = fwd;
-			if (rgh.Magnitude() != 0) lrgh = rgh;
-			if (lfwd.Magnitude() == 0) lfwd = Vector3f(0, 0, 1);
+			wishpos = cameraPos;
+			wishlookatpos = cameraLookAt;
 
-			wishmove = (
-					(lfwd * hv[0]) 
-				+	(lrgh * hv[1])
-				+	(up   * hv[2])
-					).Normalized() * (4 * frametime);
-			wishpos = cameraPos + wishmove;
-			wishlookatpos = wishpos + lfwd;
-
-			if (wishpos.isNaN()) {
-				wishpos = v3;
-				wishlookatpos = Vector3f(0, 0, 1);
-			}
-
-			if (wishpos == wishlookatpos) {
-				wishlookatpos = wishpos + Vector3f(0, 0, 1);
-			}
-
-			wishpos = Vector3f(0, 10, 0);
-			wishlookatpos = Vector3f(0, 10, 1000);
-
-			v3.ToVolatile(wishpos, gVars.cameraPosition);
-			v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
-
-
-			if ((double)clock() > lastMessageTick + 100)
-			{
-				if (wishpos == wishlookatpos) {
-					Print("WHAT?!?!\n");
-				}
-				/*if (lastPos != wishpos)
-				{
-					lastPos = wishpos;
-					lastMessageTick = (double)clock();
-
-					if (!wishpos.isNaN())
-					{
-						Print("FWD: %s;  RGH: %s; LFWD: %s; LRGH: %s\n", fwd.toCharString(), rgh.toCharString(), lfwd.toCharString(), lrgh.toCharString());
-						Print("wishmove: %s; wishpos: %s; wishlookatpos: %s\n", wishmove.toCharString(), wishpos.toCharString(), wishlookatpos.toCharString());
-					}
-					else {
-						Print("NaN: %s\n", "True");
-					}
-				}*/
-			}
+			v3.ToVolatile(cameraPos, gVars.cameraPosition);
+			v3.ToVolatile(cameraLookAt, gVars.cameraLookAtPoint);
 		}
 
 
