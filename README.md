@@ -28,5 +28,7 @@ The program offers multiple options for how you want your mouse or controller in
 ### Other goodies
 There are many other small options and tweaks in this program relating to the user experience and some possible optimizations. 
 
+#### Contributors
+Drahsid, ffgriever
 
 [![PayPal Donate](https://img.shields.io/badge/paypal-donate-blue.svg)](<https://paypal.me/Drahsid>)
