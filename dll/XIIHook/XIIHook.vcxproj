@@ -190,6 +190,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Globals.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Input.h" />

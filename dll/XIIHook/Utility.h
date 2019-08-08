@@ -36,6 +36,7 @@ struct gameVars
 	volatile uint8_t* freeCamEnabled = (uint8_t*)freeCamEnabledPtr;
 	volatile Vector3f* cameraPosition = (Vector3f*)cameraPositionPtr;
 	volatile Vector3f* cameraLookAtPoint = (Vector3f*)cameraLookAtPointPtr;
+	volatile Quaternion* cameraQuat = (Quaternion*)cameraQuatPtr;
 	volatile HWND FFXIIWND;
 
 	uint8_t gameStateEnum = 0, lastigm = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;

@@ -88,24 +88,54 @@ struct QuaternionBase {
 	{
 		Vector3Base<T> result;
 
-		T srcp = +2.0 * (w * x + y * z);
-		T crcp = +1.0 - 2.0 * (x * x + y * y);
+		T srcp = 2.0 * (w * x + y * z);
+		T crcp = 1.0 - 2.0 * (x * x + y * y);
 		result.z = atan2(srcp, crcp);
 
-		T sp = +2.0 * (w * y - z * x);
+		T sp = 2.0 * (w * y - z * x);
 		if (fabs(sp) >= 1)
 			result.x = copysign(M_PI / 2, sp);
 		else
 			result.x = asin(sp);
 
-		T sycp = +2.0 * (w * z + x * y);
-		T cycp = +1.0 - 2.0 * (y * y + z * z);
+		T sycp = 2.0 * (w * z + x * y);
+		T cycp = 1.0 - 2.0 * (y * y + z * z);
 		result.y = atan2(sycp, cycp);
 
 		return result;
 	}
 
+	inline void ToVolatile(QuaternionBase&lhs, volatile QuaternionBase&rhs) {
+		rhs.x = lhs.x;
+		rhs.y = lhs.y;
+		rhs.z = lhs.z;
+		rhs.w = lhs.w;
+	}
+
+	inline void FromVolatile(volatile QuaternionBase&lhs, QuaternionBase&rhs) {
+		rhs.x = lhs.x;
+		rhs.y = lhs.y;
+		rhs.z = lhs.z;
+		rhs.w = lhs.w;
+	}
+
+	inline void ToVolatile(QuaternionBase&lhs, volatile QuaternionBase *rhs) {
+		rhs->x = lhs.x;
+		rhs->y = lhs.y;
+		rhs->z = lhs.z;
+		rhs->w = lhs.w;
+	}
+
+	inline void FromVolatile(volatile QuaternionBase *lhs, QuaternionBase&rhs) {
+		rhs.x = lhs->x;
+		rhs.y = lhs->y;
+		rhs.z = lhs->z;
+		rhs.w = lhs->w;
+	}
+
 };
+
+typedef QuaternionBase<float> Quaternion;
 
 #endif
 

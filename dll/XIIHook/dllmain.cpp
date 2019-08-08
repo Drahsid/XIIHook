@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "../../out/detours/include/detours.h"
 #include "../../Globals.h"
 #include "Interp.h"
 #include "Config.h"
@@ -15,6 +14,7 @@ namespace
 	DWORD threadID;
 	HANDLE asyncHandle;
 	double lastMessageTick = 0;
+	Quaternion quat;
 	Vector3f v3;
 	Vector3f lfwd, lrgh;
 	Vector3f wishpos;
@@ -43,6 +43,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr0, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
 		Print("Failed to overwrite igm unlock instructions[0]\n");
 
+	quat = Quaternion();
 	v3 = Vector3f();
 	wishlookatpos = v3;
 	wishpos = v3;
@@ -99,6 +100,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				hv[2] -= 1;
 			}
 
+			Quaternion cameraQuat;
 			
 			Vector3f wishmove		= Vector3f();
 
@@ -111,6 +113,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 
 			v3.FromVolatile(gVars.cameraPosition, cameraPos);
 			v3.FromVolatile(gVars.cameraLookAtPoint, cameraLookAt);
+			quat.FromVolatile(gVars.cameraQuat, cameraQuat);
+			Print("Camera Quat: %s; Euler: %s\n", cameraQuat.toCharString(), cameraQuat.toEulerAngles().toCharString());
 
 			fwd = (cameraLookAt - cameraPos).Normalized();
 			rgh = fwd.Cross(up).Normalized();

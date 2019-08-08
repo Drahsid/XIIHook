@@ -65,7 +65,7 @@ Currently selected state of igm
 #define cameraLookAtPointPtr	0x020955F0
 #define cameraRollPtr			0x02094504
 
-
+#define cameraQuatPtr			0x02096020
 
 
 //Instruction pointers
