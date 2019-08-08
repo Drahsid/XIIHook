@@ -25,7 +25,6 @@ constexpr double OneOverSixty = 0.01666666666666667L;
 
 #include "framework.h"
 
-
 #endif
 
 

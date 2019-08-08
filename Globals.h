@@ -59,6 +59,13 @@ Currently selected state of igm
 
 #define inTitlePtr 0x2088680 //0x020A3380 //0 In game 1 In title
 
+// Credit to ffgriever for finding these
+#define freeCamEnabledPtr		0x02096DFA
+#define cameraPositionPtr		0x020955E0
+#define cameraLookAtPointPtr	0x020955F0
+#define cameraRollPtr			0x02094504
+
+
 //Instruction pointers
 
 /*

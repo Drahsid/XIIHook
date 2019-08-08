@@ -3,7 +3,15 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include "Vector3.h"
+#include "Input.h"
 
+void Print(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+}
 
 struct gameVars
 {
@@ -25,11 +33,16 @@ struct gameVars
 	volatile uint8_t* inMovieState = (uint8_t*)inMoviePtr;
 	volatile uint8_t* inCutscene = (uint8_t*)inCScenePtr;
 	volatile uint8_t* igmState = (uint8_t*)igmStatePtr;
+	volatile uint8_t* freeCamEnabled = (uint8_t*)freeCamEnabledPtr;
+	volatile Vector3f* cameraPosition = (Vector3f*)cameraPositionPtr;
+	volatile Vector3f* cameraLookAtPoint = (Vector3f*)cameraLookAtPointPtr;
+	volatile HWND FFXIIWND;
 
 	uint8_t gameStateEnum = 0, lastigm = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;
 	
 	Interp::Interp igmInterp = Interp::Interp();
 	UserConfig uConfig = UserConfig();
+	InputManager IM;
 
 	gameVars()
 	{
@@ -38,14 +51,14 @@ struct gameVars
 		igmInterp.position = 1; igmInterp.position0 = 1; igmInterp.target = 1;
 		focusState = 0; lastFocusState = 0; cTime = 0; gameStateEnum = 0; lastigm = 0; lastUseMenuLimitState = 0;
 
-		printf("Normalizing config...\n");
+		Print("Normalizing config...\n");
 		*framerateCoef = 30 / uConfig.requestedMinFramerate;
 		uConfig.requestedMinFramerate = 1 / uConfig.requestedMinFramerate;
 		uConfig.requestedMinFramerateMenus = 1 / uConfig.requestedMinFramerateMenus;
 		uConfig.requestedMinFramerateNoFocus = 1 / uConfig.requestedMinFramerateNoFocus;
 		uConfig.requestedMinFramerateMovies = 1 / uConfig.requestedMinFramerateMovies;
 		uConfig.fov = uConfig.fov * Rad2Deg;
-		printf("Config done... \n");
+		Print("Config done... \n");
 	}
 
 };
@@ -53,17 +66,13 @@ struct gameVars
 
 
 // Clean up SetConsoleTextAttribute ... printf; shorthand; inline for optimization
-__forceinline void SetConTAttribute(HANDLE h, WORD w, std::string s = "", ...)
+__forceinline void SetConTAttribute(HANDLE h, WORD w, const char *fmt, ...)
 {
 	SetConsoleTextAttribute(h, w);
-	if (!s.empty())
-	{
-		va_list args;
-		va_start(args, s);
-		vprintf(s.c_str(), args);
-		va_end(args);
-	}
-
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
 }
 
 __forceinline float getIGM(gameVars& gVars, bool current) {
@@ -97,7 +106,7 @@ void tick_interp(gameVars& gVars)
 		gVars.igmInterp.target = base;
 		gVars.igmInterp.time0 = nTime;
 
-		printf("Starting igm interp: %f -> %f\n", base0, base);
+		Print("Starting igm interp: %f -> %f\n", base0, base);
 	}
 	else if (!gVars.gameStateEnum == 1 && !*gVars.inCutscene == 1)
 	{
@@ -142,6 +151,8 @@ void updateGState(gameVars & gVars) {
 	uiState = *gVars.uiState;
 	cMenState = *gVars.cMenState;
 	inMovieState = *gVars.inMovieState;
+
+	gVars.focusState = gVars.FFXIIWND == GetForegroundWindow() ? 0 : 1;
 	
 	gVars.gameStateEnum 
 		= inCutscene == 1
@@ -191,7 +202,7 @@ void updateMouse(gameVars& gVars) {
 		: gVars.uConfig.lockedMouseMulti;
 }
 
-void Step(gameVars& gVars, std::vector<volatile float*>& animRates) {
+void Step(gameVars& gVars) {
 	//Fix page permissions
 	DWORD protection;
 	VirtualProtect((LPVOID)minFrameTimePtr, sizeof(double), PAGE_READWRITE, &protection);
@@ -209,6 +220,7 @@ void Step(gameVars& gVars, std::vector<volatile float*>& animRates) {
 	updateMouse(gVars);
 	gVars.cTime = ((double)clock() / CLOCKS_PER_SEC);
 	tickf(gVars);
+	PollInput(gVars.IM);
 }
 
 
