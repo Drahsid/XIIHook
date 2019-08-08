@@ -14,7 +14,6 @@ namespace
 	DWORD threadID;
 	HANDLE asyncHandle;
 	double lastMessageTick = 0;
-	Quaternion quat;
 	Vector3f v3;
 	Vector3f lfwd, lrgh;
 	Vector3f wishpos;
@@ -28,7 +27,6 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	DWORD pId;
 	GetWindowThreadProcessId(gVars.FFXIIWND, &pId);
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pId);
-	HANDLE hConsole;
 
 	AllocConsole();
 
@@ -43,7 +41,6 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr0, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
 		Print("Failed to overwrite igm unlock instructions[0]\n");
 
-	quat = Quaternion();
 	v3 = Vector3f();
 	wishlookatpos = v3;
 	wishpos = v3;
@@ -61,7 +58,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			Print("Free cam set to %d\n", *gVars.freeCamEnabled);
 		}
 
-		if (*gVars.freeCamEnabled) 
+		if (*gVars.freeCamEnabled)
 		{
 			float frametime = (float)*gVars.realFrameTime;
 
@@ -100,30 +97,36 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				hv[2] -= 1;
 			}
 
-			Quaternion cameraQuat;
-			
-			Vector3f wishmove		= Vector3f();
 
-			Vector3f fwd			= Vector3f();
-			Vector3f rgh			= Vector3f();
-			Vector3f up				= Vector3f(0, 1, 0);
-			
-			Vector3f cameraPos		= Vector3f();
-			Vector3f cameraLookAt	= Vector3f();
+			Vector3f wishmove = Vector3f();
+
+			Vector3f fwd = Vector3f();
+			Vector3f rgh = Vector3f();
+			Vector3f up = Vector3f(0, 1, 0);
+
+			Vector3f cameraPos = Vector3f();
+			Vector3f cameraLookAt = Vector3f();
 
 			v3.FromVolatile(gVars.cameraPosition, cameraPos);
 			v3.FromVolatile(gVars.cameraLookAtPoint, cameraLookAt);
-			quat.FromVolatile(gVars.cameraQuat, cameraQuat);
-			Print("Camera Quat: %s; Euler: %s\n", cameraQuat.toCharString(), cameraQuat.toEulerAngles().toCharString());
 
 			fwd = (cameraLookAt - cameraPos).Normalized();
 			rgh = fwd.Cross(up).Normalized();
 
-			wishpos = cameraPos;
-			wishlookatpos = cameraLookAt;
+			wishmove = (
+				(fwd * hv[0])
+				+ (rgh * hv[1])
+				+ (up * hv[2])
+				);
+			if (wishmove.Magnitude() != 0)
+			{
+				wishmove = wishmove.Normalized()* (4 * frametime);
+				wishpos = cameraPos + wishmove;
+				wishlookatpos = wishpos + fwd;
 
-			v3.ToVolatile(cameraPos, gVars.cameraPosition);
-			v3.ToVolatile(cameraLookAt, gVars.cameraLookAtPoint);
+				v3.ToVolatile(wishpos, gVars.cameraPosition);
+				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
+			}
 		}
 
 
