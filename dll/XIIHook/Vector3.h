@@ -23,16 +23,16 @@ struct Vector3Base
 	Vector3Base(const Vector3Base&rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
 
 
-	Vector3Base operator +	(const Vector3Base	&rhs) { return Vector3Base<T>(this->x + rhs.x, this->y + rhs.y, this->z + rhs.z); }
-	Vector3Base operator -	(const Vector3Base	&rhs) { return Vector3Base<T>(this->x - rhs.x, this->y - rhs.y, this->z - rhs.z); }
+	Vector3Base operator +	(const Vector3Base	&rhs) { return Vector3Base<T>(x + rhs.x, y + rhs.y, z + rhs.z); }
+	Vector3Base operator -	(const Vector3Base	&rhs) { return Vector3Base<T>(x - rhs.x, y - rhs.y, z - rhs.z); }
 	Vector3Base&operator += (const Vector3Base	&rhs) { x += rhs.x; y += rhs.y; z += rhs.z;				return *this; }
 	Vector3Base&operator -= (const Vector3Base	&rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z;				return *this; }
-	Vector3Base operator *	(const Vector3Base	&rhs) { return Vector3Base<T>(this->x * rhs.x, this->y * rhs.y, this->z * rhs.z); }
-	Vector3Base operator /	(const Vector3Base	&rhs) { return Vector3Base<T>(this->x / rhs.x, this->y / rhs.y, this->z / rhs.z); }
+	Vector3Base operator *	(const Vector3Base	&rhs) { return Vector3Base<T>(x * rhs.x, y * rhs.y, z * rhs.z); }
+	Vector3Base operator /	(const Vector3Base	&rhs) { return Vector3Base<T>(x / rhs.x, y / rhs.y, z / rhs.z); }
 	Vector3Base&operator *= (const Vector3Base	&rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z;				return *this; }
 	Vector3Base&operator /= (const Vector3Base	&rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z;				return *this; }
-	Vector3Base operator *	(const T			&rhs) { return Vector3Base<T>(this->x * rhs, this->y * rhs, this->z * rhs); }
-	Vector3Base operator /	(const T			&rhs) { return Vector3Base<T>(this->x / rhs, this->y / rhs, this->z / rhs); }
+	Vector3Base operator *	(const T			&rhs) { return Vector3Base<T>(x * rhs, y * rhs, z * rhs); }
+	Vector3Base operator /	(const T			&rhs) { return Vector3Base<T>(x / rhs, y / rhs, z / rhs); }
 	Vector3Base&operator *= (const T			&rhs) { x *= rhs; y *= rhs; z *= rhs;					return *this; }
 	Vector3Base&operator /= (const T			&rhs) { x /= rhs; y /= rhs;	z /= rhs;					return *this; }
 
@@ -119,14 +119,7 @@ struct Vector3Base
 
 typedef Vector3Base<float>		Vector3f;
 typedef Vector3Base<double>		Vector3;
-typedef Vector3Base<int8_t>		Vector3i8;
-typedef Vector3Base<int16_t>	Vector3i16;
 typedef Vector3Base<int>		Vector3i;
-typedef Vector3Base<int64_t>	Vector3i64;
-typedef Vector3Base<uint8_t>	uVector3i8;
-typedef Vector3Base<uint16_t>	uVector3i16;
-typedef Vector3Base<uint32_t>	uVector3i;
-typedef Vector3Base<uint64_t>	uVector3i64;
 
 #endif
 

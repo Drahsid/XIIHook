@@ -29,6 +29,37 @@ struct QuaternionBase {
 
 	QuaternionBase&operator=(const QuaternionBase&rhs) { x = rhs.x; y = rhs.y; z = rhs.z; w = rhs.w; return *this; }
 
+	QuaternionBase operator*(const QuaternionBase&rhs) {
+		return QuaternionBase<T>(
+			w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y,
+			w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x,
+			w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w,
+			w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z
+			);
+	}
+
+	QuaternionBase&operator*=(const QuaternionBase&rhs) {
+		x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
+		y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
+		z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
+		w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
+
+		return *this;
+	}
+
+	QuaternionBase operator/(const T&rhs) {
+		return QuaternionBase<T>(x / rhs, y / rhs, z / rhs, w / rhs);
+	}
+
+	QuaternionBase&operator/=(const QuaternionBase&rhs) {
+		this->x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
+		this->y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
+		this->z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
+		this->w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
+
+		return *this;
+	}
+
 	bool operator==(const QuaternionBase&rhs) { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
 	bool operator!=(const QuaternionBase&rhs) { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
 
@@ -50,6 +81,14 @@ struct QuaternionBase {
 		return ss.str().c_str();
 	}
 
+	inline const T Magnitude() {
+		return pow(w * w + x * x + y * y + z * z, 0.5);
+	}
+
+	inline const QuaternionBase Normalized() {
+			return *this / Magnitude();
+	}
+
 	inline QuaternionBase toQuaternion(T& Pitch, T& Yaw, T& Roll) {
 		T cp = cos(Pitch * 0.5);
 		T sp = sin(Pitch * 0.5);
@@ -58,13 +97,13 @@ struct QuaternionBase {
 		T cr = cos(Roll * 0.5);
 		T sr = sin(Roll * 0.5);
 
-		QuaternionBase quat;
-		quat.w = cy * cp * cr + sy * sp * sr;
-		quat.x = cy * cp * sr - sy * sp * cr;
-		quat.y = sy * cp * sr + cy * sp * cr;
-		quat.z = sy * cp * cr - cy * sp * sr;
+		QuaternionBase result;
+		result.w = cy * cp * cr + sy * sp * sr;
+		result.x = cy * cp * sr - sy * sp * cr;
+		result.y = sy * cp * sr + cy * sp * cr;
+		result.z = sy * cp * cr - cy * sp * sr;
 
-		return quat;
+		return result;
 	}
 
 	inline QuaternionBase toQuaternion(Vector3Base<T>& EulerAngles) {
@@ -86,23 +125,18 @@ struct QuaternionBase {
 
 	Vector3Base<T> toEulerAngles()
 	{
-		Vector3Base<T> result;
+		T sx = x * x;
+		T sy = y * y;
+		T sz = z * z;
+		T sw = w * w;
 
-		T srcp = 2 * (w * x + y * z);
-		T crcp = 1 - 2 * (x * x + y * y);
-		result.z = atan2(srcp, crcp);
-
-		T sp = 2 * (w * y - z * x);
-		if (fabs(sp) >= 1)
-			result.x = copysign(M_PI / 2, sp);
-		else
-			result.x = asin(sp);
-
-		T sycp = 2 * (w * z + x * y);
-		T cycp = 1 - 2 * (y * y + z * z);
-		result.y = atan2(sycp, cycp);
-
-		return result;
+		return Vector3Base<T>(
+			asin(2 * (w * x - y * z)),
+			atan2(2 * w * y + 2 * z * x,
+				1 - 2 * (x * x + y * y)),
+			atan2(2 * w * z + 2 * x * y,
+				1 - 2 * (z * z + x * x))
+			);
 	}
 
 	inline void ToVolatile(QuaternionBase&lhs, volatile QuaternionBase&rhs) {

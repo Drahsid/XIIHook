@@ -19,6 +19,8 @@ namespace
 	Vector3f wishpos;
 	Vector3f wishlookatpos;
 	Vector3f lastPos;
+	Quaternion quat;
+	Quaternion cameraQuat;
 }
 
 DWORD WINAPI asyncThread(LPVOID lpParameter) {
@@ -41,14 +43,14 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr0, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
 		Print("Failed to overwrite igm unlock instructions[0]\n");
 
+	quat = Quaternion();
+	cameraQuat = quat;
 	v3 = Vector3f();
 	wishlookatpos = v3;
 	wishpos = v3;
 	lastPos = v3;
 	lfwd = Vector3f(0, 0, 1);
 	lrgh = Vector3f(1, 0, 0);
-	
-	bool posChanged = false;
 
 	for (;;) {
 		Step(gVars);
@@ -62,10 +64,11 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 		{
 			float frametime = (float)*gVars.realFrameTime;
 
-			float hv[3];
+			float hv[4];
 			hv[0] = 0;
 			hv[1] = 0;
 			hv[2] = 0;
+			hv[3] = 0;
 
 			//I Key; Forwards
 			if (gVars.IM.keyCode[0x49].State == KeyState::Pressed || gVars.IM.keyCode[0x49].State == KeyState::Down) {
@@ -97,6 +100,11 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				hv[2] -= 1;
 			}
 
+			// Middle Mouse Button; Adjust Pitch
+			if (gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Pressed || gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Down) {
+				
+			}
+
 
 			Vector3f wishmove = Vector3f();
 
@@ -120,7 +128,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				);
 			if (wishmove.Magnitude() != 0)
 			{
-				wishmove = wishmove.Normalized()* (4 * frametime);
+				wishmove = wishmove.Normalized() * (4 * frametime);
 				wishpos = cameraPos + wishmove;
 				wishlookatpos = wishpos + fwd;
 
@@ -129,6 +137,11 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			}
 		}
 
+		if (lastMessageTick + 500 < clock()) {
+			lastMessageTick = clock();
+			quat.FromVolatile(gVars.cameraQuat, cameraQuat);
+			Print("Camera Quat: %s; [Deg]Camera Euler: %s\n", cameraQuat.toCharString(), (cameraQuat.toEulerAngles() / Rad2Deg).toCharString());
+		}
 
 		Sleep((*gVars.realFrameTime / gVars.uConfig.mainThreadUpdateCoef) * 1000);
 		if (breakStep) break;
