@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <string>
 #include <math.h>
+#include <cmath>
 #include "Vector3.h"
 
 
