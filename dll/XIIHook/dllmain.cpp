@@ -21,6 +21,7 @@ namespace
 	Vector3f lastPos;
 	Quaternion quat;
 	Quaternion cameraQuat;
+	float pitch, yaw;
 }
 
 DWORD WINAPI asyncThread(LPVOID lpParameter) {
@@ -51,6 +52,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	lastPos = v3;
 	lfwd = Vector3f(0, 0, 1);
 	lrgh = Vector3f(1, 0, 0);
+	pitch = 0; yaw = 0;
 
 	for (;;) {
 		Step(gVars);
@@ -58,17 +60,19 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 		if (gVars.IM.keyCode[VK_MENU].State == KeyState::Pressed) {
 			*gVars.freeCamEnabled = *gVars.freeCamEnabled == 0 ? 1 : 0;
 			Print("Free cam set to %d\n", *gVars.freeCamEnabled);
+			*gVars.hudDisabled = *gVars.freeCamEnabled;
 		}
 
 		if (*gVars.freeCamEnabled)
 		{
 			float frametime = (float)*gVars.realFrameTime;
 
-			float hv[4];
+			float hv[5];
 			hv[0] = 0;
 			hv[1] = 0;
 			hv[2] = 0;
 			hv[3] = 0;
+			hv[4] = 0;
 
 			//I Key; Forwards
 			if (gVars.IM.keyCode[0x49].State == KeyState::Pressed || gVars.IM.keyCode[0x49].State == KeyState::Down) {
@@ -100,9 +104,23 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				hv[2] -= 1;
 			}
 
-			// Middle Mouse Button; Adjust Pitch
+			// Middle Mouse Button; Adjust Pitch & Yaw
 			if (gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Pressed || gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Down) {
 				
+			}
+
+			// Up; Negative Pitch
+			if (gVars.IM.keyCode[VK_UP].State == KeyState::Pressed || gVars.IM.keyCode[VK_UP].State == KeyState::Down) {
+				pitch -= 16 * Rad2Deg * frametime;
+				hv[3] -= 1;
+				Print("Pitch now %f.4 *%f\n", pitch, pitch / Rad2Deg);
+			}
+
+			// Down; Negative Pitch
+			if (gVars.IM.keyCode[VK_DOWN].State == KeyState::Pressed || gVars.IM.keyCode[VK_DOWN].State == KeyState::Down) {
+				pitch += 16 * Rad2Deg * frametime;
+				hv[3] += 1;
+				Print("Pitch now %f.4 *%f\n", pitch, pitch / Rad2Deg);
 			}
 
 
@@ -130,17 +148,19 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			{
 				wishmove = wishmove.Normalized() * (4 * frametime);
 				wishpos = cameraPos + wishmove;
-				wishlookatpos = wishpos + fwd;
+				wishlookatpos = wishpos 
+					+ Vector3f(cosf(pitch), -sinf(pitch), cosf(pitch))
+					+((up * hv[3]) * 4 * frametime); //+ fwd + ((up * hv[3]) * 4 * frametime);
 
 				v3.ToVolatile(wishpos, gVars.cameraPosition);
 				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
 			}
-		}
-
-		if (lastMessageTick + 500 < clock()) {
-			lastMessageTick = clock();
-			quat.FromVolatile(gVars.cameraQuat, cameraQuat);
-			Print("Camera Quat: %s; [Deg]Camera Euler: %s\n", cameraQuat.toCharString(), (cameraQuat.toEulerAngles() / Rad2Deg).toCharString());
+			else if (fwd.Magnitude() != 0) {
+				wishlookatpos = cameraPos 
+					+ Vector3f(cosf(pitch), -sinf(pitch), cosf(pitch))
+					+ ((up * hv[3]) * 4 * frametime);
+				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
+			}
 		}
 
 		Sleep((*gVars.realFrameTime / gVars.uConfig.mainThreadUpdateCoef) * 1000);

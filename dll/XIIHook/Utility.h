@@ -33,11 +33,17 @@ struct gameVars
 	volatile uint8_t* inMovieState = (uint8_t*)inMoviePtr;
 	volatile uint8_t* inCutscene = (uint8_t*)inCScenePtr;
 	volatile uint8_t* igmState = (uint8_t*)igmStatePtr;
+	volatile uint8_t* hudDisabled = (uint8_t*)hudDisabledPtr;
 	volatile uint8_t* freeCamEnabled = (uint8_t*)freeCamEnabledPtr;
 	volatile Vector3f* cameraPosition = (Vector3f*)cameraPositionPtr;
 	volatile Vector3f* cameraLookAtPoint = (Vector3f*)cameraLookAtPointPtr;
 	volatile Quaternion* cameraQuat = (Quaternion*)cameraQuatPtr;
 	volatile HWND FFXIIWND;
+	volatile bPa1a2 hideHUD = (bPa1a2)0x0253CE0; //Parent call of below
+	volatile voidPn hideBillboards = (voidPn)0x028F720; //Hides some billboards such as the health above the player and enemie's heads
+	volatile voidPa1 hideBillboards2 = (voidPa1)0x02517E0; //Hides some billboards as well; come back when this is NOT being called
+	volatile voidPn hidePartyMenus = (voidPn)0x035C730; //Causes word to NOT unpause after PC tries to open a party menu
+	
 
 	uint8_t gameStateEnum = 0, lastigm = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;
 	
