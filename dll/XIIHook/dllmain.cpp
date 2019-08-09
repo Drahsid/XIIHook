@@ -71,8 +71,6 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			hv[0] = 0;
 			hv[1] = 0;
 			hv[2] = 0;
-			hv[3] = 0;
-			hv[4] = 0;
 
 			//I Key; Forwards
 			if (gVars.IM.keyCode[0x49].State == KeyState::Pressed || gVars.IM.keyCode[0x49].State == KeyState::Down) {
@@ -112,15 +110,21 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			// Up; Negative Pitch
 			if (gVars.IM.keyCode[VK_UP].State == KeyState::Pressed || gVars.IM.keyCode[VK_UP].State == KeyState::Down) {
 				pitch -= 16 * Rad2Deg * frametime;
-				hv[3] -= 1;
-				Print("Pitch now %f.4 *%f\n", pitch, pitch / Rad2Deg);
 			}
 
 			// Down; Negative Pitch
 			if (gVars.IM.keyCode[VK_DOWN].State == KeyState::Pressed || gVars.IM.keyCode[VK_DOWN].State == KeyState::Down) {
 				pitch += 16 * Rad2Deg * frametime;
-				hv[3] += 1;
-				Print("Pitch now %f.4 *%f\n", pitch, pitch / Rad2Deg);
+			}
+
+			// Right; Positive Yaw
+			if (gVars.IM.keyCode[VK_RIGHT].State == KeyState::Pressed || gVars.IM.keyCode[VK_RIGHT].State == KeyState::Down) {
+				yaw += 16 * Rad2Deg * frametime;
+			}
+
+			// Left; Negative Yaw
+			if (gVars.IM.keyCode[VK_LEFT].State == KeyState::Pressed || gVars.IM.keyCode[VK_LEFT].State == KeyState::Down) {
+				yaw -= 16 * Rad2Deg * frametime;
 			}
 
 
@@ -148,17 +152,16 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			{
 				wishmove = wishmove.Normalized() * (4 * frametime);
 				wishpos = cameraPos + wishmove;
-				wishlookatpos = wishpos 
-					+ Vector3f(cosf(pitch), -sinf(pitch), cosf(pitch))
-					+((up * hv[3]) * 4 * frametime); //+ fwd + ((up * hv[3]) * 4 * frametime);
+				wishlookatpos = wishpos
+					+ Vector3f(cosf(pitch) * -sinf(yaw), -sinf(pitch), cosf(pitch) * cosf(yaw));
 
 				v3.ToVolatile(wishpos, gVars.cameraPosition);
 				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
 			}
 			else {
-				wishlookatpos = cameraPos 
-					+ Vector3f(cosf(pitch), -sinf(pitch), cosf(pitch))
-					+ ((up * hv[3]) * 4 * frametime);
+				wishlookatpos = cameraPos
+					+ Vector3f(cosf(pitch) * -sinf(yaw), -sinf(pitch), cosf(pitch) * cosf(yaw));
+
 				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
 			}
 		}
