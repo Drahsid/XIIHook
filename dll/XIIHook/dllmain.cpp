@@ -142,6 +142,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 
 			fwd = (cameraLookAt - cameraPos).Normalized();
 			rgh = fwd.Cross(up).Normalized();
+			up = rgh.Cross(fwd);
 
 			wishmove = (
 				(fwd * hv[0])
