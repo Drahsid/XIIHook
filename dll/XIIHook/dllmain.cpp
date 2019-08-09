@@ -155,7 +155,7 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				v3.ToVolatile(wishpos, gVars.cameraPosition);
 				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
 			}
-			else if (fwd.Magnitude() != 0) {
+			else {
 				wishlookatpos = cameraPos 
 					+ Vector3f(cosf(pitch), -sinf(pitch), cosf(pitch))
 					+ ((up * hv[3]) * 4 * frametime);
