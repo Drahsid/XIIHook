@@ -2,12 +2,12 @@
 #define GLOBALS_H
 
 //Constexprs
-constexpr double RAD2DEG = 0.0174532925199L;
-constexpr double RAD90 = 1.570796L;
-constexpr double ONE_OVER_SIXTY = 0.01666666666666667L;
-constexpr double PI = 3.14159265358979323846L;
-constexpr double TAU = 2 * PI;
-constexpr double HPI = PI / 2;
+constexpr long double RAD2DEG = 0.0174532925199L;
+constexpr long double RAD90 = 1.570796L;
+constexpr long double ONE_OVER_SIXTY = 0.01666666666666667L;
+constexpr long double PI = 3.14159265358979323846L;
+constexpr long double TAU = 2L * PI;
+constexpr long double HPI = PI / 2L;
 
 //TODO: clean this file up
 

@@ -80,11 +80,11 @@ struct gameVars
 		focusState = 0; lastFocusState = 0; cTime = 0; gameStateEnum = 0; lastInGameMultiState = 0; lastUseMenuLimitState = 0;
 
 		print("Normalizing config...\n");
-		*framerateCoef = 30 / uConfig.requestedMinFramerate;
-		uConfig.requestedMinFramerate = 1 / uConfig.requestedMinFramerate;
-		uConfig.requestedMinFramerateMenus = 1 / uConfig.requestedMinFramerateMenus;
-		uConfig.requestedMinFramerateNoFocus = 1 / uConfig.requestedMinFramerateNoFocus;
-		uConfig.requestedMinFramerateMovies = 1 / uConfig.requestedMinFramerateMovies;
+		*framerateCoef = 30.f / uConfig.requestedMinFramerate;
+		uConfig.requestedMinFramerate = 1.f / uConfig.requestedMinFramerate;
+		uConfig.requestedMinFramerateMenus = 1.f / uConfig.requestedMinFramerateMenus;
+		uConfig.requestedMinFramerateNoFocus = 1.f / uConfig.requestedMinFramerateNoFocus;
+		uConfig.requestedMinFramerateMovies = 1.f / uConfig.requestedMinFramerateMovies;
 		uConfig.fov = uConfig.fov * RAD2DEG;
 		print("Config done... \n");
 	}

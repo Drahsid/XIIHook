@@ -31,13 +31,14 @@ const char* EASING_TYPE_NAMES[] = { "Linear", "OnePointFive", "Square", "Cubic",
 class Interpolator 
 {
 public:
-	float initialTime = 0; // Time on first tick
-	float endTime = 0; // Time at 1
-	float smoothingTime = 0; // Time to reach target
-	float initialPosition = 0; // Initial position
-	float currentPosition = 0; // Current position
-	float targetPosition = 0; // Current target
+	float initialTime = 0;
+	float endTime = 0;
+	float smoothingTime = 0;
+	float initialPosition = 0;
+	float currentPosition = 0;
+	float targetPosition = 0;
 	int easingType = EasingTypes::Linear;
+
 public:
 	void setType(int& type) 
 	{
@@ -68,7 +69,7 @@ public:
 			return currentPosition;
 			break;
 		case EasingTypes::OnePointFive:
-			dtOnePointFive = pow(deltaTime, 1.5);
+			dtOnePointFive = powf(deltaTime, 1.5f);
 			currentPosition = initialPosition + (deltaVector * dtOnePointFive);
 			return currentPosition;
 			break;
@@ -90,32 +91,32 @@ public:
 			return currentPosition;
 			break;
 		case EasingTypes::Sine:
-			dtSin = sin(deltaTime * HPI);
+			dtSin = sinf(deltaTime * HPI);
 			currentPosition = initialPosition + (deltaVector * dtSin);
 			return currentPosition;
 			break;
 		case EasingTypes::SinSq:
-			dtSinSquared = sin(dtSquared * HPI);
+			dtSinSquared = sinf(dtSquared * HPI);
 			currentPosition = initialPosition + (deltaVector * dtSinSquared);
 			return currentPosition;
 			break;
 		case EasingTypes::SinInvSq:
-			dtSinRoot = sin(pow(deltaTime, 0.5) * HPI);
+			dtSinRoot = sinf(powf(deltaTime, 0.5f) * HPI);
 			currentPosition = initialPosition + (deltaVector * dtSinRoot);
 			return currentPosition;
 			break;
 		case EasingTypes::PerlinFast:
-			dtFastPerlin = 3 * dtSquared - 2 * dtCubed;
+			dtFastPerlin = 3.f * dtSquared - 2.f * dtCubed;
 			currentPosition = initialPosition + (deltaVector * dtFastPerlin);
 			return currentPosition;
 			break;
 		case EasingTypes::Perlin:
 			dtPerlin =
-				70 * dtQuart * dtQuart * deltaTime	// 70x^9
-				- 315 * dtQuart * dtQuart			//315x^8
-				+ 540 * dtQuart * dtCubed			//540x^7
-				- 420 * dtQuart * dtSquared			//420x^6
-				+ 126 * dtQuart * deltaTime;		//126x^5
+				70.f * dtQuart * dtQuart * deltaTime	// 70x^9
+				- 315.f * dtQuart * dtQuart			//315x^8
+				+ 540.f * dtQuart * dtCubed			//540x^7
+				- 420.f * dtQuart * dtSquared			//420x^6
+				+ 126.f * dtQuart * deltaTime;		//126x^5
 			currentPosition = initialPosition + (deltaVector * dtPerlin);
 			return currentPosition;
 			break;
