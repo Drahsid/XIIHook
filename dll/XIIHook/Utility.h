@@ -44,6 +44,7 @@ struct gameVars
 	volatile float* inGameMouseMultiplier = (float*)mouseCoefPtr;
 	volatile float* gamma = (float*)gammaPtr;
 	volatile float* fov = (float*)fovPtr;
+	volatile float* aoeActionDummy = (float*)actionAoeFixDummyPtr;
 
 	volatile uint8_t* ctrlEnabled = (uint8_t*)ctrlEnabledPtr;
 	volatile uint8_t* titleState = (uint8_t*)inTitlePtr;

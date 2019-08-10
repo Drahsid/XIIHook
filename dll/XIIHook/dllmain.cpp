@@ -47,6 +47,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stderr);
 
+	*gVars.aoeActionDummy = 0.5;
+
 	//Overwriting instructions
 	if (!WriteProcessMemory(hProcess, (LPVOID)mouseUnlockPtr, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
 		print("Failed to overwrite mouse unlock instructions\n");
@@ -54,6 +56,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 		print("Failed to overwrite igm unlock instructions[]\n");
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr0, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
 		print("Failed to overwrite igm unlock instructions[0]\n");
+	if (!WriteProcessMemory(hProcess, (LPVOID)actionAoeFixPtr, "\xF3\x0F\x10\x3C\x25\xBC\x60\xE1\x01\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 22, NULL))
+		print("Failed to overwrite aoeActionFix\n");
 
 	v3 = Vector3f();
 	wishLookAtPos = v3;
@@ -238,7 +242,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 
 			fwd = (cameraLookAt - cameraPos).normalized();
 			rgh = fwd.cross(up).normalized();
-			up = rgh.cross(fwd);
+			up = rgh.cross(fwd).normalized();
+			rgh = fwd.cross(up).normalized();
 
 			wishMove = (
 				(fwd * hv[0])

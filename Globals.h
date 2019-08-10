@@ -139,11 +139,12 @@ Erasing this results in completely unlocked framerate
 
 Fixes fullscreen problem
 #define fovUnlockPtr 0x06E63EE0 //Nothing seems to activley write in 1.0.3?!
-
-This is overwritten to fix the lock that happens when a character uses an AOE, Mist, or Summon.
-This was caused when the FPS coef was not 1 or 0.5 and a register recieved no value
-#define actionAoeFixPtr 0x0024B840 
 */
+/*
+This is overwritten to fix the lock that happens when a character uses an AOE, Mist, or Summon.
+This was caused when the FPS coef was not 1 or 0.5 and a register recieved no value*/
+#define actionAoeFixPtr 0x0024B48E
+#define actionAoeFixDummyPtr 0x01E160BC
 
 
 /*
