@@ -164,6 +164,13 @@ The address which addresses will be moved onto after patch
 #define animDummyPtr 0x01E160D4 
 
 /*
+This address disables all user input but leaves camera controls active
+0 - disabled
+1 - enabled
+*/
+#define ctrlEnabledPtr 0x02096E34
+
+/*
 The secondary frametime gets updates on this instruction.
 */
 #define ftUpdatePtr 0x0B94C262 
@@ -176,19 +183,19 @@ Overwrite to modify cutscene timescale
 
 #ifndef DLL_BUILD
 
-	namespace {
-		extern IDirect3D9Ex* p_Object = 0;
-		extern IDirect3DDevice9Ex* p_Device = 0;
-		extern D3DPRESENT_PARAMETERS p_Params;
-		extern ID3DXLine* p_Line = 0;
-		extern ID3DXFont* pFontSmall = 0;
-		extern ID3DXFont* pFontSmaller = 0;
-		extern ID3DXFont* pFontSmallest = 0;
-		extern ID3DXFont* pFontLarge = 0;
+namespace {
+	extern IDirect3D9Ex* p_Object = 0;
+	extern IDirect3DDevice9Ex* p_Device = 0;
+	extern D3DPRESENT_PARAMETERS p_Params;
+	extern ID3DXLine* p_Line = 0;
+	extern ID3DXFont* pFontSmall = 0;
+	extern ID3DXFont* pFontSmaller = 0;
+	extern ID3DXFont* pFontSmallest = 0;
+	extern ID3DXFont* pFontLarge = 0;
 
-		extern int Width = 1920;
-		extern int Height = 1080;
-	}
+	extern int Width = 1920;
+	extern int Height = 1080;
+}
 #endif
 
 #endif

@@ -27,6 +27,7 @@ struct gameVars
 	volatile float* gamma = (float*)gammaPtr;
 	volatile float* fov = (float*)fovPtr;
 	volatile float* animDummy = (float*)animDummyPtr;
+	volatile uint8_t* ctrlEnabled = (uint8_t*)ctrlEnabledPtr;
 	volatile uint8_t* titleState = (uint8_t*)inTitlePtr;
 	volatile uint8_t* uiState = (uint8_t*)uiEnabledPtr;
 	volatile uint8_t* cMenState = (uint8_t*)inCombatMenPtr;
@@ -43,10 +44,10 @@ struct gameVars
 	volatile voidPn hideBillboards = (voidPn)0x028F720; //Hides some billboards such as the health above the player and enemie's heads
 	volatile voidPa1 hideBillboards2 = (voidPa1)0x02517E0; //Hides some billboards as well; come back when this is NOT being called
 	volatile voidPn hidePartyMenus = (voidPn)0x035C730; //Causes word to NOT unpause after PC tries to open a party menu
-	
+
 
 	uint8_t gameStateEnum = 0, lastigm = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;
-	
+
 	Interp::Interp igmInterp = Interp::Interp();
 	UserConfig uConfig = UserConfig();
 	InputManager IM;
@@ -86,14 +87,14 @@ __forceinline float getIGM(gameVars& gVars, bool current) {
 	switch (current) {
 	case true:
 		return	*gVars.igmState == 0 ? gVars.uConfig.igmState0Override
-			:	*gVars.igmState == 1 ? gVars.uConfig.igmState1Override 
-			:	gVars.uConfig.igmState2Override;
+			: *gVars.igmState == 1 ? gVars.uConfig.igmState1Override
+			: gVars.uConfig.igmState2Override;
 		break;
 
 	case false:
 		return	gVars.lastigm == 0 ? gVars.uConfig.igmState0Override
-			:	gVars.lastigm == 1 ? gVars.uConfig.igmState1Override
-			:	gVars.uConfig.igmState2Override;
+			: gVars.lastigm == 1 ? gVars.uConfig.igmState1Override
+			: gVars.uConfig.igmState2Override;
 		break;
 	}
 }
@@ -160,8 +161,8 @@ void updateGState(gameVars & gVars) {
 	inMovieState = *gVars.inMovieState;
 
 	gVars.focusState = gVars.FFXIIWND == GetForegroundWindow() ? 0 : 1;
-	
-	gVars.gameStateEnum 
+
+	gVars.gameStateEnum
 		= inCutscene == 1
 		? 4 : inMovieState == 1 && uiState == 0
 		? 3 : gVars.focusState == 1
@@ -170,7 +171,7 @@ void updateGState(gameVars & gVars) {
 		: 0;
 }
 
-void updateFPSCoef(gameVars& gVars) 
+void updateFPSCoef(gameVars& gVars)
 {
 	switch (gVars.gameStateEnum)
 	{
