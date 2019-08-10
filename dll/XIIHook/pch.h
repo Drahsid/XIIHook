@@ -26,6 +26,7 @@ typedef void(*voidPa1)(int a1);
 #include <type_traits>
 #include <dwmapi.h>
 #include <inttypes.h>
+#include <cmath>
 
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "detours.lib")

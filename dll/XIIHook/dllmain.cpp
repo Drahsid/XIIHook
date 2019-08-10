@@ -22,9 +22,9 @@ namespace
 	Quaternion quat;
 	Quaternion cameraQuat;
 	float pitch, yaw;
-	const float movespeed = 4;
-	const float lookspeed = 16;
 	const float timeUntilSpeedRamp = 1000;
+	float movespeed = 4;
+	float lookspeed = 16;
 	float moveSpeed = movespeed;
 	float lookSpeed = lookspeed;
 }
@@ -83,6 +83,33 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			hv[0] = 0;
 			hv[1] = 0;
 			hv[2] = 0;
+
+			//Increase movespeed
+			if (gVars.IM.keyCode['X'].State == KeyState::Pressed) {
+				movespeed += 0.5;
+				Print("Base movespeed is %f\n", movespeed);
+			}
+
+			//Decrease movespeed
+			if (gVars.IM.keyCode['Z'].State == KeyState::Pressed) {
+				movespeed -= 0.5;
+				Print("Base movespeed is %f\n", movespeed);
+			}
+
+			//Increase lookspeed
+			if (gVars.IM.keyCode['V'].State == KeyState::Pressed) {
+				lookspeed += 0.5;
+				Print("Base lookspeed is %f\n", lookspeed);
+			}
+
+			//Decrease lookspeed
+			if (gVars.IM.keyCode['C'].State == KeyState::Pressed) {
+				lookspeed -= 0.5;
+				Print("Base lookspeed is %f\n", lookspeed);
+			}
+
+			movespeed = clamp(movespeed, 1024, 0.5);
+			lookspeed = clamp(lookspeed, 1024, 0.5);
 
 			//Forwards
 			if (gVars.IM.keyCode['W'].State == KeyState::Pressed || gVars.IM.keyCode['W'].State == KeyState::Down) {

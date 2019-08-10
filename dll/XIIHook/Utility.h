@@ -13,6 +13,11 @@ void Print(const char *fmt, ...) {
 	va_end(args);
 }
 
+float& clamp(float lhs, float upper, float lower)
+{
+	return min(upper, max(lhs, lower));
+}
+
 struct gameVars
 {
 	double cTime = 0;
