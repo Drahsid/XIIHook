@@ -3,9 +3,6 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include <Windows.h>
-#include <ctime>
-
 enum KeyState : uint8_t {
 	Pressed = 0,
 	Down,
@@ -13,7 +10,7 @@ enum KeyState : uint8_t {
 };
 
 struct Key {
-	KeyState State = KeyState::Up;
+	KeyState state = KeyState::Up;
 	double invokeTime = 0;
 };
 
@@ -26,23 +23,23 @@ void PollInput(InputManager&IM) {
 		
 		if (GetAsyncKeyState(i)) 
 		{
-			switch (IM.keyCode[i].State) {
+			switch (IM.keyCode[i].state) {
 			case Pressed:
-				IM.keyCode[i].State = KeyState::Down;
+				IM.keyCode[i].state = KeyState::Down;
 				break;
 
 			case Down:
 				break;
 
 			case Up:
-				IM.keyCode[i].State = KeyState::Pressed;
+				IM.keyCode[i].state = KeyState::Pressed;
 				IM.keyCode[i].invokeTime = (double)clock();
 				break;
 			}
 		}
 		else 
 		{
-			IM.keyCode[i].State = KeyState::Up;
+			IM.keyCode[i].state = KeyState::Up;
 		}
 	}
 }

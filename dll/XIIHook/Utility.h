@@ -3,17 +3,30 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include "pch.h"
+#include "Interpolator.h"
+#include "Config.h"
 #include "Input.h"
 
-void Print(const char *fmt, ...) {
+// Utility
+
+__forceinline void print(const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
 }
 
-float& clamp(float lhs, float upper, float lower)
+// Clean up SetConsoleTextAttribute ... printf; shorthand; inline for optimization
+__forceinline void setConTAttribute(HANDLE h, WORD w, const char *fmt, ...)
+{
+	SetConsoleTextAttribute(h, w);
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+}
+
+__forceinline float& clamp(float lhs, float upper, float lower)
 {
 	return min(upper, max(lhs, lower));
 }
@@ -31,7 +44,7 @@ struct gameVars
 	volatile float* inGameMouseMultiplier = (float*)mouseCoefPtr;
 	volatile float* gamma = (float*)gammaPtr;
 	volatile float* fov = (float*)fovPtr;
-	volatile float* animDummy = (float*)animDummyPtr;
+
 	volatile uint8_t* ctrlEnabled = (uint8_t*)ctrlEnabledPtr;
 	volatile uint8_t* titleState = (uint8_t*)inTitlePtr;
 	volatile uint8_t* uiState = (uint8_t*)uiEnabledPtr;
@@ -41,19 +54,21 @@ struct gameVars
 	volatile uint8_t* igmState = (uint8_t*)igmStatePtr;
 	volatile uint8_t* hudDisabled = (uint8_t*)hudDisabledPtr;
 	volatile uint8_t* freeCamEnabled = (uint8_t*)freeCamEnabledPtr;
+
 	volatile Vector3f* cameraPosition = (Vector3f*)cameraPositionPtr;
 	volatile Vector3f* cameraLookAtPoint = (Vector3f*)cameraLookAtPointPtr;
-	volatile Quaternion* cameraQuat = (Quaternion*)cameraQuatPtr;
+
 	volatile HWND FFXIIWND;
+
 	volatile bPa1a2 hideHUD = (bPa1a2)0x0253CE0; //Parent call of below
 	volatile voidPn hideBillboards = (voidPn)0x028F720; //Hides some billboards such as the health above the player and enemie's heads
 	volatile voidPa1 hideBillboards2 = (voidPa1)0x02517E0; //Hides some billboards as well; come back when this is NOT being called
 	volatile voidPn hidePartyMenus = (voidPn)0x035C730; //Causes word to NOT unpause after PC tries to open a party menu
 
 
-	uint8_t gameStateEnum = 0, lastigm = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;
+	uint8_t gameStateEnum = 0, lastInGameMultiState = 0, focusState = 0, lastFocusState = 0, lastUseMenuLimitState = 0;
 
-	Interp::Interp igmInterp = Interp::Interp();
+	Interpolator igmInterp = Interpolator();
 	UserConfig uConfig = UserConfig();
 	InputManager IM;
 
@@ -61,32 +76,23 @@ struct gameVars
 	{
 		Config::UpdateUserConfig(uConfig);
 		igmInterp.setType(uConfig.easingType);
-		igmInterp.position = 1; igmInterp.position0 = 1; igmInterp.target = 1;
-		focusState = 0; lastFocusState = 0; cTime = 0; gameStateEnum = 0; lastigm = 0; lastUseMenuLimitState = 0;
+		igmInterp.currentPosition = 1; igmInterp.initialPosition = 1; igmInterp.targetPosition = 1;
+		focusState = 0; lastFocusState = 0; cTime = 0; gameStateEnum = 0; lastInGameMultiState = 0; lastUseMenuLimitState = 0;
 
-		Print("Normalizing config...\n");
+		print("Normalizing config...\n");
 		*framerateCoef = 30 / uConfig.requestedMinFramerate;
 		uConfig.requestedMinFramerate = 1 / uConfig.requestedMinFramerate;
 		uConfig.requestedMinFramerateMenus = 1 / uConfig.requestedMinFramerateMenus;
 		uConfig.requestedMinFramerateNoFocus = 1 / uConfig.requestedMinFramerateNoFocus;
 		uConfig.requestedMinFramerateMovies = 1 / uConfig.requestedMinFramerateMovies;
-		uConfig.fov = uConfig.fov * Rad2Deg;
-		Print("Config done... \n");
+		uConfig.fov = uConfig.fov * RAD2DEG;
+		print("Config done... \n");
 	}
 
 };
 
 
-
-// Clean up SetConsoleTextAttribute ... printf; shorthand; inline for optimization
-__forceinline void SetConTAttribute(HANDLE h, WORD w, const char *fmt, ...)
-{
-	SetConsoleTextAttribute(h, w);
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-}
+//Game related
 
 __forceinline float getIGM(gameVars& gVars, bool current) {
 	switch (current) {
@@ -97,29 +103,29 @@ __forceinline float getIGM(gameVars& gVars, bool current) {
 		break;
 
 	case false:
-		return	gVars.lastigm == 0 ? gVars.uConfig.igmState0Override
-			: gVars.lastigm == 1 ? gVars.uConfig.igmState1Override
+		return	gVars.lastInGameMultiState == 0 ? gVars.uConfig.igmState0Override
+			: gVars.lastInGameMultiState == 1 ? gVars.uConfig.igmState1Override
 			: gVars.uConfig.igmState2Override;
 		break;
 	}
 }
 
-void tick_interp(gameVars& gVars)
+__forceinline void interpolatorStep(gameVars& gVars)
 {
 	float nTime = (float)gVars.cTime;
 
-	if (!gVars.gameStateEnum == 1 && !*gVars.inCutscene == 1 && gVars.lastigm != *gVars.igmState)
+	if (!gVars.gameStateEnum == 1 && !*gVars.inCutscene == 1 && gVars.lastInGameMultiState != *gVars.igmState)
 	{
 		float base0 = getIGM(gVars, false);
 		float base = getIGM(gVars, true);
 
-		gVars.igmInterp.position = base0;
-		gVars.igmInterp.position0 = base0;
-		gVars.igmInterp.smoothTime = gVars.uConfig.easingTime;
-		gVars.igmInterp.target = base;
-		gVars.igmInterp.time0 = nTime;
+		gVars.igmInterp.currentPosition = base0;
+		gVars.igmInterp.initialPosition = base0;
+		gVars.igmInterp.smoothingTime = gVars.uConfig.easingTime;
+		gVars.igmInterp.targetPosition = base;
+		gVars.igmInterp.initialTime = nTime;
 
-		Print("Starting igm interp: %f -> %f\n", base0, base);
+		print("Starting igm interp: %f -> %f\n", base0, base);
 	}
 	else if (!gVars.gameStateEnum == 1 && !*gVars.inCutscene == 1)
 	{
@@ -127,9 +133,9 @@ void tick_interp(gameVars& gVars)
 		switch (gVars.uConfig.bEnableEasing)
 		{
 		case true:
-			base = gVars.igmInterp.interp(nTime);
+			base = gVars.igmInterp.interpolate(nTime);
 
-			if (nTime > gVars.igmInterp.time1) base = getIGM(gVars, true);
+			if (nTime > gVars.igmInterp.endTime) base = getIGM(gVars, true);
 			if (base != base || base == 0) base = 1; //If NaN set to 1
 			break;
 		case false:
@@ -143,21 +149,21 @@ void tick_interp(gameVars& gVars)
 }
 
 
-void tickf(gameVars & gVars)
+__forceinline void tickf(gameVars& gVars)
 {
-	tick_interp(gVars);
+	interpolatorStep(gVars);
 
 	if (*gVars.worldTime > *gVars.inGameMultiplier * 2)
 		*gVars.worldTime = *gVars.inGameMultiplier;
 
-	gVars.lastigm = *gVars.igmState;
+	gVars.lastInGameMultiState = *gVars.igmState;
 
 	*gVars.gamma = gVars.uConfig.gamma;
 	*gVars.fov = gVars.uConfig.fov;
 }
 
 
-void updateGState(gameVars & gVars) {
+__forceinline void updateGState(gameVars& gVars) {
 	uint8_t inCutscene, uiState, cMenState, inMovieState;
 
 	inCutscene = *gVars.inCutscene;
@@ -176,7 +182,7 @@ void updateGState(gameVars & gVars) {
 		: 0;
 }
 
-void updateFPSCoef(gameVars& gVars)
+__forceinline void updateFPSCoef(gameVars& gVars)
 {
 	switch (gVars.gameStateEnum)
 	{
@@ -209,13 +215,13 @@ void updateFPSCoef(gameVars& gVars)
 	gVars.lastUseMenuLimitState = gVars.gameStateEnum;
 }
 
-void updateMouse(gameVars& gVars) {
+__forceinline void updateMouse(gameVars& gVars) {
 	*gVars.inGameMouseMultiplier = gVars.uConfig.bEnableAdaptiveMouse ?
 		(gVars.uConfig.lockedMouseMulti * *gVars.inGameMultiplier) / *gVars.timeScale
 		: gVars.uConfig.lockedMouseMulti;
 }
 
-void Step(gameVars& gVars) {
+__forceinline void step(gameVars& gVars) {
 	//Fix page permissions
 	DWORD protection;
 	VirtualProtect((LPVOID)minFrameTimePtr, sizeof(double), PAGE_READWRITE, &protection);

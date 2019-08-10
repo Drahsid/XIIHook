@@ -3,18 +3,11 @@
 #ifndef QUAT_H
 #define QUAT_H
 
-
-#include <inttypes.h>
-#include <string>
-#include <math.h>
-#include <cmath>
 #include "Vector3.h"
-
 
 template <class T>
 struct QuaternionBase {
 	union {
-		T data[4];
 		struct {
 			T x;
 			T y;
@@ -23,13 +16,13 @@ struct QuaternionBase {
 		};
 	};
 
-	QuaternionBase() : x(0), y(0), z(0), w(0) {}
-	QuaternionBase(T _x, T _y, T _z, T _w) : x(_x), y(_y), z(_z) {}
-	QuaternionBase(const QuaternionBase&rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
+	__forceinline QuaternionBase() : x(0), y(0), z(0), w(0) {}
+	__forceinline QuaternionBase(T _x, T _y, T _z, T _w) : x(_x), y(_y), z(_z) {}
+	__forceinline QuaternionBase(const QuaternionBase& rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
 
-	QuaternionBase&operator=(const QuaternionBase&rhs) { x = rhs.x; y = rhs.y; z = rhs.z; w = rhs.w; return *this; }
+	__forceinline QuaternionBase&operator=(const QuaternionBase& rhs) { x = rhs.x; y = rhs.y; z = rhs.z; w = rhs.w; return *this; }
 
-	QuaternionBase operator*(const QuaternionBase&rhs) {
+	__forceinline QuaternionBase operator*(const QuaternionBase& rhs) {
 		return QuaternionBase<T>(
 			w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y,
 			w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x,
@@ -38,7 +31,7 @@ struct QuaternionBase {
 			);
 	}
 
-	QuaternionBase&operator*=(const QuaternionBase&rhs) {
+	__forceinline QuaternionBase&operator*=(const QuaternionBase& rhs) {
 		x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
 		y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
 		z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
@@ -47,11 +40,11 @@ struct QuaternionBase {
 		return *this;
 	}
 
-	QuaternionBase operator/(const T&rhs) {
+	__forceinline QuaternionBase operator/(const T& rhs) {
 		return QuaternionBase<T>(x / rhs, y / rhs, z / rhs, w / rhs);
 	}
 
-	QuaternionBase&operator/=(const QuaternionBase&rhs) {
+	__forceinline QuaternionBase&operator/=(const QuaternionBase& rhs) {
 		this->x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
 		this->y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
 		this->z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
@@ -60,36 +53,36 @@ struct QuaternionBase {
 		return *this;
 	}
 
-	bool operator==(const QuaternionBase&rhs) { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
-	bool operator!=(const QuaternionBase&rhs) { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
+	__forceinline bool operator==(const QuaternionBase& rhs) { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+	__forceinline bool operator!=(const QuaternionBase& rhs) { return x != rhs.x || y != rhs.y || z != rhs.z || w != rhs.w; }
 
-	T&operator []	(const uint32_t i) { return *((T*)this[i]); }
+	__forceinline T&operator []	(const uint32_t i) { return *((T*)this[i]); }
 
-	friend std::ostream& operator<<(std::ostream&lhs, const QuaternionBase&rhs) {
+	__forceinline friend std::ostream& operator<<(std::ostream& lhs, const QuaternionBase& rhs) {
 		return lhs << "( " << rhs.x << ", " << rhs.y << ", " << rhs.z << ", " << rhs.w << " )";
 	}
 
-	inline std::string toString() {
+	__forceinline std::string toString() {
 		std::ostringstream ss;
 		ss << *this;
 		return ss.str();
 	}
 
-	inline const char* toCharString() {
+	__forceinline const char* toCharString() {
 		std::ostringstream ss;
 		ss << *this;
 		return ss.str().c_str();
 	}
 
-	inline const T Magnitude() {
+	__forceinline const T magnitude() {
 		return pow(w * w + x * x + y * y + z * z, 0.5);
 	}
 
-	inline const QuaternionBase Normalized() {
-			return *this / Magnitude();
+	__forceinline const QuaternionBase normalized() {
+			return *this / magnitude();
 	}
 
-	inline QuaternionBase toQuaternion(T& Pitch, T& Yaw, T& Roll) {
+	__forceinline QuaternionBase toQuaternion(T& Pitch, T& Yaw, T& Roll) {
 		T cp = cos(Pitch * 0.5);
 		T sp = sin(Pitch * 0.5);
 		T cy = cos(Yaw * 0.5);
@@ -106,7 +99,7 @@ struct QuaternionBase {
 		return result;
 	}
 
-	inline QuaternionBase toQuaternion(Vector3Base<T>& EulerAngles) {
+	__forceinline QuaternionBase toQuaternion(Vector3Base<T>& EulerAngles) {
 		T cp = cos(EulerAngles.x * 0.5);
 		T sp = sin(EulerAngles.x * 0.5);
 		T cy = cos(EulerAngles.y * 0.5);
@@ -123,7 +116,7 @@ struct QuaternionBase {
 		return quat;
 	}
 
-	Vector3Base<T> toEulerAngles()
+	__forceinline Vector3Base<T> toEulerAngles()
 	{
 		T sx = x * x;
 		T sy = y * y;
@@ -139,28 +132,28 @@ struct QuaternionBase {
 			);
 	}
 
-	inline void ToVolatile(QuaternionBase&lhs, volatile QuaternionBase&rhs) {
+	__forceinline void toVolatile(QuaternionBase& lhs, volatile QuaternionBase& rhs) {
 		rhs.x = lhs.x;
 		rhs.y = lhs.y;
 		rhs.z = lhs.z;
 		rhs.w = lhs.w;
 	}
 
-	inline void FromVolatile(volatile QuaternionBase&lhs, QuaternionBase&rhs) {
+	__forceinline void fromVolatile(volatile QuaternionBase& lhs, QuaternionBase& rhs) {
 		rhs.x = lhs.x;
 		rhs.y = lhs.y;
 		rhs.z = lhs.z;
 		rhs.w = lhs.w;
 	}
 
-	inline void ToVolatile(QuaternionBase&lhs, volatile QuaternionBase *rhs) {
+	__forceinline void toVolatile(QuaternionBase& lhs, volatile QuaternionBase *rhs) {
 		rhs->x = lhs.x;
 		rhs->y = lhs.y;
 		rhs->z = lhs.z;
 		rhs->w = lhs.w;
 	}
 
-	inline void FromVolatile(volatile QuaternionBase *lhs, QuaternionBase&rhs) {
+	__forceinline void fromVolatile(volatile QuaternionBase *lhs, QuaternionBase& rhs) {
 		rhs.x = lhs->x;
 		rhs.y = lhs->y;
 		rhs.z = lhs->z;

@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "../../Globals.h"
-#include "Interp.h"
-#include "Config.h"
+#include "..\..\Globals.h"
 #include "Utility.h"
 #include "Input.h"
+
+#define keyCodes gVars.IM.keyCode
 
 namespace
 {
@@ -16,23 +16,22 @@ namespace
 	double lastMessageTick = 0;
 	Vector3f v3;
 	Vector3f lfwd, lrgh;
-	Vector3f wishpos;
-	Vector3f wishlookatpos;
+	Vector3f wishPos;
+	Vector3f wishLookAtPos;
 	Vector3f lastPos;
-	Quaternion quat;
-	Quaternion cameraQuat;
-	float pitch, yaw;
+	Vector3f eulerAngles;
+	//TODO: Add these to config
 	const float timeUntilSpeedRamp = 1000;
-	float movespeed = 4;
-	float lookspeed = 16;
-	float moveSpeed = movespeed;
-	float lookSpeed = lookspeed;
+	float baseMoveSpeed = 4;
+	float baseLookSpeed = 16;
+	float moveSpeed = baseMoveSpeed;
+	float lookSpeed = baseLookSpeed;
 }
 
 void rampupSpeed() {
 	moveSpeed += (2 * (float)*gVars.realFrameTime);
-	float wishspeed = lookspeed * ((moveSpeed / movespeed) / 8);
-	lookSpeed = wishspeed >= lookspeed ? wishspeed : lookspeed;
+	float wishspeed = baseLookSpeed * ((moveSpeed / baseMoveSpeed) / 8);
+	lookSpeed = wishspeed >= baseLookSpeed ? wishspeed : baseLookSpeed;
 }
 
 DWORD WINAPI asyncThread(LPVOID lpParameter) {
@@ -49,170 +48,174 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 
 	//Overwriting instructions
 	if (!WriteProcessMemory(hProcess, (LPVOID)mouseUnlockPtr, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
-		Print("Failed to overwrite mouse unlock instructions\n");
+		print("Failed to overwrite mouse unlock instructions\n");
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr, "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 10, NULL))
-		Print("Failed to overwrite igm unlock instructions[]\n");
+		print("Failed to overwrite igm unlock instructions[]\n");
 	if (!WriteProcessMemory(hProcess, (LPVOID)igmUnlockPtr0, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
-		Print("Failed to overwrite igm unlock instructions[0]\n");
+		print("Failed to overwrite igm unlock instructions[0]\n");
 
-	quat = Quaternion();
-	cameraQuat = quat;
 	v3 = Vector3f();
-	wishlookatpos = v3;
-	wishpos = v3;
+	wishLookAtPos = v3;
+	wishPos = v3;
 	lastPos = v3;
 	lfwd = Vector3f(0, 0, 1);
 	lrgh = Vector3f(1, 0, 0);
-	pitch = 0; yaw = 0;
+	eulerAngles = v3;
 
 	for (;;) {
-		Step(gVars);
+		step(gVars);
 
-		if (gVars.IM.keyCode[VK_CONTROL].State == KeyState::Pressed) {
+		if (keyCodes[VK_CONTROL].state == KeyState::Pressed) {
 			*gVars.freeCamEnabled = *gVars.freeCamEnabled == 0 ? 1 : 0;
-			Print("Free cam set to %d\n", *gVars.freeCamEnabled);
+			print("Free cam set to %d\n", *gVars.freeCamEnabled);
 			*gVars.hudDisabled = *gVars.freeCamEnabled;
 			*gVars.ctrlEnabled = !*gVars.freeCamEnabled;
 		}
 
 		if (*gVars.freeCamEnabled)
 		{
-			float frametime = (float)*gVars.realFrameTime;
+			float frameTime = (float)*gVars.realFrameTime;
 
 			float hv[3];
 			hv[0] = 0;
 			hv[1] = 0;
 			hv[2] = 0;
 
-			//Increase movespeed
-			if (gVars.IM.keyCode['X'].State == KeyState::Pressed) {
-				movespeed += 0.5;
-				Print("Base movespeed is %f\n", movespeed);
+			//Increase baseMoveSpeed
+			if (keyCodes['X'].state == KeyState::Pressed) {
+				baseMoveSpeed += 0.5;
+				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
 			}
 
-			//Decrease movespeed
-			if (gVars.IM.keyCode['Z'].State == KeyState::Pressed) {
-				movespeed -= 0.5;
-				Print("Base movespeed is %f\n", movespeed);
+			//Decrease baseMoveSpeed
+			if (keyCodes['Z'].state == KeyState::Pressed) {
+				baseMoveSpeed -= 0.5;
+				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
 			}
 
-			//Increase lookspeed
-			if (gVars.IM.keyCode['V'].State == KeyState::Pressed) {
-				lookspeed += 0.5;
-				Print("Base lookspeed is %f\n", lookspeed);
+			//Increase baseLookSpeed
+			if (keyCodes['V'].state == KeyState::Pressed) {
+				baseLookSpeed += 0.5;
+				print("Base baseLookSpeed is %f\n", baseLookSpeed);
 			}
 
-			//Decrease lookspeed
-			if (gVars.IM.keyCode['C'].State == KeyState::Pressed) {
-				lookspeed -= 0.5;
-				Print("Base lookspeed is %f\n", lookspeed);
+			//Decrease baseLookSpeed
+			if (keyCodes['C'].state == KeyState::Pressed) {
+				baseLookSpeed -= 0.5;
+				print("Base baseLookSpeed is %f\n", baseLookSpeed);
 			}
 
-			movespeed = clamp(movespeed, 1024, 0.5);
-			lookspeed = clamp(lookspeed, 1024, 0.5);
+			baseMoveSpeed = clamp(baseMoveSpeed, 1024, 0.5);
+			baseLookSpeed = clamp(baseLookSpeed, 1024, 0.5);
 
 			//Forwards
-			if (gVars.IM.keyCode['W'].State == KeyState::Pressed || gVars.IM.keyCode['W'].State == KeyState::Down) {
+			if (keyCodes['W'].state == KeyState::Pressed || keyCodes['W'].state == KeyState::Down) {
 				hv[0] += 1;
-				if (clock() > gVars.IM.keyCode['W'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['W'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Backwards
-			if (gVars.IM.keyCode['S'].State == KeyState::Pressed || gVars.IM.keyCode['S'].State == KeyState::Down) {
+			if (keyCodes['S'].state == KeyState::Pressed || keyCodes['S'].state == KeyState::Down) {
 				hv[0] -= 1;
-				if (clock() > gVars.IM.keyCode['S'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['S'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Right Strafe
-			if (gVars.IM.keyCode['D'].State == KeyState::Pressed || gVars.IM.keyCode['D'].State == KeyState::Down) {
+			if (keyCodes['D'].state == KeyState::Pressed || keyCodes['D'].state == KeyState::Down) {
 				hv[1] += 1;
-				if (clock() > gVars.IM.keyCode['D'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['D'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Strafe
-			if (gVars.IM.keyCode['A'].State == KeyState::Pressed || gVars.IM.keyCode['A'].State == KeyState::Down) {
+			if (keyCodes['A'].state == KeyState::Pressed || keyCodes['A'].state == KeyState::Down) {
 				hv[1] -= 1;
-				if (clock() > gVars.IM.keyCode['A'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['A'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Raise
-			if (gVars.IM.keyCode['E'].State == KeyState::Pressed || gVars.IM.keyCode['E'].State == KeyState::Down) {
+			if (keyCodes['E'].state == KeyState::Pressed || keyCodes['E'].state == KeyState::Down) {
 				hv[2] += 1;
-				if (clock() > gVars.IM.keyCode['E'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['E'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Lower
-			if (gVars.IM.keyCode['Q'].State == KeyState::Pressed || gVars.IM.keyCode['Q'].State == KeyState::Down) {
+			if (keyCodes['Q'].state == KeyState::Pressed || keyCodes['Q'].state == KeyState::Down) {
 				hv[2] -= 1;
-				if (clock() > gVars.IM.keyCode['Q'].invokeTime + timeUntilSpeedRamp && gVars.IM.keyCode[VK_SHIFT].State != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['Q'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			// Adjust Pitch & Yaw
-			if (gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Pressed || gVars.IM.keyCode[VK_MBUTTON].State == KeyState::Down) {
+			if (keyCodes[VK_MBUTTON].state == KeyState::Pressed || keyCodes[VK_MBUTTON].state == KeyState::Down) {
 
 			}
 
 			// Negative Pitch
-			if (gVars.IM.keyCode[VK_UP].State == KeyState::Pressed || gVars.IM.keyCode[VK_UP].State == KeyState::Down) {
-				pitch -= lookSpeed * Rad2Deg * frametime;
+			if (keyCodes[VK_UP].state == KeyState::Pressed || keyCodes[VK_UP].state == KeyState::Down) {
+				eulerAngles.x -= lookSpeed * RAD2DEG * frameTime;
 			}
 
 			// Positive Pitch
-			if (gVars.IM.keyCode[VK_DOWN].State == KeyState::Pressed || gVars.IM.keyCode[VK_DOWN].State == KeyState::Down) {
-				pitch += lookSpeed * Rad2Deg * frametime;
+			if (keyCodes[VK_DOWN].state == KeyState::Pressed || keyCodes[VK_DOWN].state == KeyState::Down) {
+				eulerAngles.x += lookSpeed * RAD2DEG * frameTime;
 			}
 
 			// Positive Yaw
-			if (gVars.IM.keyCode[VK_RIGHT].State == KeyState::Pressed || gVars.IM.keyCode[VK_RIGHT].State == KeyState::Down) {
-				yaw += lookSpeed * Rad2Deg * frametime;
+			if (keyCodes[VK_RIGHT].state == KeyState::Pressed || keyCodes[VK_RIGHT].state == KeyState::Down) {
+				eulerAngles.y += lookSpeed * RAD2DEG * frameTime;
 			}
 
 			// Negative Yaw
-			if (gVars.IM.keyCode[VK_LEFT].State == KeyState::Pressed || gVars.IM.keyCode[VK_LEFT].State == KeyState::Down) {
-				yaw -= lookSpeed * Rad2Deg * frametime;
+			if (keyCodes[VK_LEFT].state == KeyState::Pressed || keyCodes[VK_LEFT].state == KeyState::Down) {
+				eulerAngles.y -= lookSpeed * RAD2DEG * frameTime;
 			}
 
 			if (hv[0] == 0 && hv[1] == 0 && hv[2] == 0) {
-				moveSpeed = movespeed;
-				lookSpeed = lookspeed;
+				moveSpeed = baseMoveSpeed;
+				lookSpeed = baseLookSpeed;
 			}
 
-			Vector3f wishmove = Vector3f();
+			Vector3f wishMove = v3;
 
-			Vector3f fwd = Vector3f();
-			Vector3f rgh = Vector3f();
+			Vector3f fwd = v3;
+			Vector3f rgh = v3;
 			Vector3f up = Vector3f(0, 1, 0);
 
-			Vector3f cameraPos = Vector3f();
-			Vector3f cameraLookAt = Vector3f();
+			Vector3f cameraPos = v3;
+			Vector3f cameraLookAt = v3;
 
-			v3.FromVolatile(gVars.cameraPosition, cameraPos);
-			v3.FromVolatile(gVars.cameraLookAtPoint, cameraLookAt);
+			v3.fromVolatile(gVars.cameraPosition, cameraPos);
+			v3.fromVolatile(gVars.cameraLookAtPoint, cameraLookAt);
 
-			fwd = (cameraLookAt - cameraPos).Normalized();
-			rgh = fwd.Cross(up).Normalized();
-			up = rgh.Cross(fwd);
+			fwd = (cameraLookAt - cameraPos).normalized();
+			rgh = fwd.cross(up).normalized();
+			up = rgh.cross(fwd);
 
-			wishmove = (
+			wishMove = (
 				(fwd * hv[0])
 				+ (rgh * hv[1])
 				+ (up * hv[2])
 				);
-			if (wishmove.Magnitude() != 0)
+
+			if (wishMove.magnitude() != 0)
 			{
-				wishmove = wishmove.Normalized() * (moveSpeed * frametime);
-				wishpos = cameraPos + wishmove;
-				wishlookatpos = wishpos
-					+ Vector3f(cosf(pitch) * -sinf(yaw), -sinf(pitch), cosf(pitch) * cosf(yaw));
+				wishMove = wishMove.normalized() * (moveSpeed * frameTime);
+				wishPos = cameraPos + wishMove;
+				wishLookAtPos = wishPos
+					+ Vector3f(cosf(eulerAngles.x) * -sinf(eulerAngles.y), 
+						-sinf(eulerAngles.x), 
+						cosf(eulerAngles.x) * cosf(eulerAngles.y));
 
-				v3.ToVolatile(wishpos, gVars.cameraPosition);
-				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
+				v3.toVolatile(wishPos, gVars.cameraPosition);
+				v3.toVolatile(wishLookAtPos, gVars.cameraLookAtPoint);
 			}
-			else {
-				wishlookatpos = cameraPos
-					+ Vector3f(cosf(pitch) * -sinf(yaw), -sinf(pitch), cosf(pitch) * cosf(yaw));
+			else 
+			{
+				wishLookAtPos = cameraPos
+					+ Vector3f(cosf(eulerAngles.x) * -sinf(eulerAngles.y), 
+						-sinf(eulerAngles.x), 
+						cosf(eulerAngles.x) * cosf(eulerAngles.y));
 
-				v3.ToVolatile(wishlookatpos, gVars.cameraLookAtPoint);
+				v3.toVolatile(wishLookAtPos, gVars.cameraLookAtPoint);
 			}
 		}
 
