@@ -22,6 +22,7 @@ namespace
 	Vector3f eulerAngles;
 	//TODO: Add these to config
 	const float timeUntilSpeedRamp = 1000;
+	const float speedMax = 128;
 	float baseMoveSpeed = 4;
 	float baseLookSpeed = 16;
 	float moveSpeed = baseMoveSpeed;
@@ -105,8 +106,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				print("Base baseLookSpeed is %f\n", baseLookSpeed);
 			}
 
-			baseMoveSpeed = clamp(baseMoveSpeed, 1024, 0.5);
-			baseLookSpeed = clamp(baseLookSpeed, 1024, 0.5);
+			baseMoveSpeed = clamp(baseMoveSpeed, speedMax, 0.5);
+			baseLookSpeed = clamp(baseLookSpeed, speedMax, 0.5);
 
 			//Forwards
 			if (keyCodes['W'].state == KeyState::Pressed || keyCodes['W'].state == KeyState::Down) {
@@ -173,6 +174,9 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				moveSpeed = baseMoveSpeed;
 				lookSpeed = baseLookSpeed;
 			}
+
+			moveSpeed = clamp(moveSpeed, speedMax, 0.5);
+			lookSpeed = clamp(lookSpeed, speedMax, 0.5);
 
 			Vector3f wishMove = v3;
 
