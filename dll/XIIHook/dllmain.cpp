@@ -71,6 +71,36 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			print("Free cam set to %d\n", *gVars.freeCamEnabled);
 			*gVars.hudDisabled = *gVars.freeCamEnabled;
 			*gVars.ctrlEnabled = !*gVars.freeCamEnabled;
+
+			//let's initialize it properly once per activation
+			if (*gVars.freeCamEnabled)
+			{
+				Vector3f cameraPos;
+				Vector3f cameraLookAt;
+				Vector3f worldUp = Vector3f(0, 1, 0);
+				Vector3f worldForward = Vector3f(0, 0, 1);
+				Vector3f worldRight = Vector3f(1, 0, 0);
+
+				v3.fromVolatile(gVars.cameraPosition, cameraPos);
+				v3.fromVolatile(gVars.cameraLookAtPoint, cameraLookAt);
+				
+				//game won't allow magnitude to be zero, so no point checking, I guess
+				Vector3f lookAtVector = (cameraLookAt - cameraPos).normalized();
+				Vector3f lookAtProjectionXZ(lookAtVector.x, 0, lookAtVector.z);
+
+				float pitchDot = lookAtVector.dot(lookAtProjectionXZ);
+				float pitch = acosf(pitchDot / lookAtProjectionXZ.magnitude()); //lookAtVector is normalized so no need to multiply by 1
+				if (lookAtVector.dot(worldUp) > 0)
+					pitch = -pitch;
+
+				float yawDot = lookAtProjectionXZ.dot(worldForward);
+				float yaw = acosf(yawDot / lookAtProjectionXZ.magnitude()); //worldForward is normalized
+				if (lookAtProjectionXZ.dot(worldRight) > 0)
+					yaw = -yaw;
+
+				eulerAngles.x = pitch;
+				eulerAngles.y = yaw;
+			}
 		}
 
 		if (*gVars.freeCamEnabled)
@@ -169,6 +199,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			if (keyCodes[VK_LEFT].state == KeyState::Pressed || keyCodes[VK_LEFT].state == KeyState::Down) {
 				eulerAngles.y -= lookSpeed * RAD2DEG * frameTime;
 			}
+
+			//TODO: clamp eulerAngles to -PI : PI or 0 : 2PI to prevent issues with float rounding errors if they go too high
 
 			if (hv[0] == 0 && hv[1] == 0 && hv[2] == 0) {
 				moveSpeed = baseMoveSpeed;
