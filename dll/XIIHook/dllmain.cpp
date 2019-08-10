@@ -210,6 +210,20 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 			moveSpeed = clamp(moveSpeed, speedMax, 0.5);
 			lookSpeed = clamp(lookSpeed, speedMax, 0.5);
 
+			if (eulerAngles.x > PI) {
+				eulerAngles.x = -PI + (eulerAngles.x - PI);
+			}
+			if (eulerAngles.x < -PI) {
+				eulerAngles.x = PI - (eulerAngles.x - PI);
+			}
+
+			if (eulerAngles.y > TAU) {
+				eulerAngles.y = -TAU + (eulerAngles.y - TAU);
+			}
+			if (eulerAngles.y < -TAU) {
+				eulerAngles.y = TAU - (eulerAngles.y - TAU);
+			}
+
 			Vector3f wishMove = v3;
 
 			Vector3f fwd = v3;
