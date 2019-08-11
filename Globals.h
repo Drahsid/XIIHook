@@ -49,6 +49,7 @@ Global time multiplier
 Pretty much everything scales to this and the time scale
 */
 #define framerateCoefPtr 0x1DFC0BC
+#define invFramerateCoefPtr 0x01DFC0B8 
 
 /*
 The playback rate of animations. This is always 30.
