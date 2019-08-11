@@ -233,12 +233,9 @@ call $(ProjectDir)ZipArchiveForRelease.cmd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Config.h" />
     <ClInclude Include="d3dDraw.h" />
     <ClInclude Include="d3dHook.h" />
     <ClInclude Include="d3dMenu.h" />
-    <ClInclude Include="Globals.h" />
-    <ClInclude Include="Interp.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Utility.h" />

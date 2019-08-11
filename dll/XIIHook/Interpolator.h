@@ -2,7 +2,7 @@
 #define INTERP_H
 
 #include <math.h>
-#include "..\..\Globals.h"
+#include "Globals.h"
 
 #pragma once
 

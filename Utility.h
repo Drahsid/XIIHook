@@ -3,6 +3,13 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
+//Console colors
+#define cc_NORM 15
+#define cc_VERBOSE 2
+#define cc_FUN 5
+#define cc_ERROR 12
+#define cc_WARN 14
+
 // Shorthand for the method; inline for optimization
 __forceinline HWND findXII() 
 {

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "..\..\Globals.h"
+#include "Globals.h"
 #include "Utility.h"
 #include "Input.h"
 
