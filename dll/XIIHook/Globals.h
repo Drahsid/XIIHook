@@ -1,5 +1,16 @@
+#pragma once
+
 #ifndef GLOBALS_H
 #define GLOBALS_H
+
+//Game funcs
+typedef bool(*bPa1a2)(int a1, int a2);
+typedef void(*voidPn)();
+typedef void(*voidPa1)(int a1);
+typedef void(*voidPd1)(double a1);
+typedef void(*voidPd1a2)(double a1, int a2);
+typedef void(*voidPa1d2)(int a1, double a2);
+typedef void(*voidPa1s2)(int a1, const char* a2);
 
 //Constexprs
 constexpr long double RAD2DEG = 0.0174532925199L;
@@ -20,6 +31,9 @@ constexpr long double HPI = PI / 2L;
 
 
 #define NOP 0x90 //NOP instruction TODO: replace NOP strings with cleaner code using this
+
+//Game's base addr
+#define baseAddress 0x00120000
 
 //In-game pointers
 #define minFrameTimePtr 0x008FE378		//0x0090D398 //Min Frametime 1

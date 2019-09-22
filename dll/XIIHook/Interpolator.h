@@ -1,10 +1,9 @@
+#pragma once
+
 #ifndef INTERP_H 
 #define INTERP_H
 
-#include <math.h>
-#include "Globals.h"
-
-#pragma once
+#include "pch.h"
 
 #define deltaVector (targetPosition - initialPosition)
 

@@ -119,6 +119,7 @@ struct Vector3Base
 typedef Vector3Base<float>		Vector3f;
 typedef Vector3Base<double>		Vector3;
 typedef Vector3Base<int>		Vector3i;
+typedef Vector3Base<LONG>		Vector3l;
 
 #endif
 

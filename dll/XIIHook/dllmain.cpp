@@ -1,25 +1,37 @@
 #include "pch.h"
 #include "Globals.h"
-#include "Utility.h"
 #include "Input.h"
+#include "Interpolator.h"
+#include "Config.h"
+#include "Utility.h"
+#include "GameUtility.h"
+#include "HookVars.h"
+#include "d3d11hook.h"
 
 #define keyCodes gVars.IM.keyCode
 
+
 namespace
 {
-	HINSTANCE* myHInst;
-	HANDLE myHandle;
-	static gameVars gVars;
-	bool breakStep = false;
-	DWORD threadID;
-	HANDLE asyncHandle;
-	double lastMessageTick = 0;
+	HookVars hookVars;
+	gameVars gVars;
+
 	Vector3f v3;
 	Vector3f lfwd, lrgh;
 	Vector3f wishPos;
 	Vector3f wishLookAtPos;
 	Vector3f lastPos;
 	Vector3f eulerAngles;
+	Vector3l rawMouseDelta;
+
+	DWORD pId;
+	DWORD threadID;
+	DWORD rawInputThreadID;
+
+	HANDLE hProcess;
+	HANDLE asyncHandle;
+	HANDLE asyncRawInputHandle;
+
 	//TODO: Add these to config
 	const float timeUntilSpeedRamp = 1000;
 	const float speedMax = 128;
@@ -27,27 +39,93 @@ namespace
 	float baseLookSpeed = 16;
 	float moveSpeed = baseMoveSpeed;
 	float lookSpeed = baseLookSpeed;
+	float mPitch = 0.0105f;
+	float mYaw = 0.0105f;
+
+	double lastMessageTick = 0;
+
+	bool breakStep;
+
+	MSG msg;
+	HHOOK hhk = NULL;
+	RAWINPUTDEVICE rid;
+	std::vector<BYTE> rawInputBuffer;
 }
 
-void rampupSpeed() {
+inline void rampupSpeed() {
 	moveSpeed += (2 * (float)*gVars.realFrameTime);
 	float wishspeed = baseLookSpeed * ((moveSpeed / baseMoveSpeed) / 8);
 	lookSpeed = wishspeed >= baseLookSpeed ? wishspeed : baseLookSpeed;
 }
 
-DWORD WINAPI asyncThread(LPVOID lpParameter) {
+LRESULT CALLBACK msgHook(int nCode, WPARAM wParam, LPARAM lParam) {
+	PostMessage(NULL, WM_INPUT, wParam, lParam);
+	return CallNextHookEx(hhk, nCode, wParam, lParam);
+}
+
+DWORD WINAPI asyncRawInputThread(HMODULE hModule) {
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = 0;
+	rid.hwndTarget = nullptr;
+
+	if (RegisterRawInputDevices(&rid, 1, sizeof(rid)) == FALSE) {
+		print("Error: registering raw input devices!\n");
+	}
+
+	hhk = SetWindowsHookEx(WH_MOUSE_LL, msgHook, NULL, NULL);
+
+	if (hhk == NULL) print("Failed to create Windows hook!\nError: %lu\n", GetLastError());
+
+	while (true) {
+		GetMessage(&msg, NULL, 0, 0);
+
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+
+		if (msg.message == WM_INPUT) 
+		{
+			SetLastError(0);
+
+			UINT size = sizeof(RAWINPUT);
+			UINT rvalue = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+
+			if (rvalue == -1) print("Error: GetRawInputData 0\nLast Error: %lu\n", GetLastError());
+
+			rawInputBuffer.resize(size);
+
+			rvalue = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, rawInputBuffer.data(), &size, sizeof(RAWINPUTHEADER));
+
+			if (rvalue != size) print("Error: GetRawInputData 1\nLast Error: %lu\n", GetLastError());
+
+			RAWINPUT ri = (RAWINPUT&)(*rawInputBuffer.data());
+
+			if (ri.header.dwType == RIM_TYPEMOUSE)
+			{
+				print("Raw mouse delta: (%ld, %ld)\n", ri.data.mouse.lLastX, ri.data.mouse.lLastY);
+				rawMouseDelta += Vector3l(ri.data.mouse.lLastX, ri.data.mouse.lLastY, 0);
+			}
+		}
+
+		Sleep(1);
+	}
+
+	return 0;
+}
+
+DWORD WINAPI asyncThread(HMODULE hModule) 
+{
 	gVars.FFXIIWND = FindWindow(0, L"FINAL FANTASY XII THE ZODIAC AGE");
 
-	DWORD pId;
 	GetWindowThreadProcessId(gVars.FFXIIWND, &pId);
-	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pId);
+	hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pId);
 
 	AllocConsole();
 
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stderr);
 
-	*gVars.aoeActionDummy = 0.5;
+	*gVars.aoeActionDummy = 0.5f;
 
 	//Overwriting instructions
 	if (!WriteProcessMemory(hProcess, (LPVOID)mouseUnlockPtr, "\x90\x90\x90\x90\x90\x90\x90\x90", 8, NULL))
@@ -59,6 +137,11 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	if (!WriteProcessMemory(hProcess, (LPVOID)actionAoeFixPtr, "\xF3\x0F\x10\x3C\x25\xBC\x60\xE1\x01\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90", 22, NULL))
 		print("Failed to overwrite aoeActionFix\n");
 
+	breakStep = false;
+
+	hookVars.menu = Menu();
+	InitImGui(hModule, gVars, hookVars);
+
 	v3 = Vector3f();
 	wishLookAtPos = v3;
 	wishPos = v3;
@@ -67,8 +150,25 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	lrgh = Vector3f(1, 0, 0);
 	eulerAngles = v3;
 
+	rawMouseDelta = Vector3l();
+
+	asyncRawInputHandle = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)asyncRawInputThread, hModule, NULL, &rawInputThreadID);
+
 	for (;;) {
 		step(gVars);
+		hookVars.menu.Render(&gVars);
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.MouseDrawCursor = true;
+
+		//print("Mouse delta: (%ld, %ld)\n", rawMouseDelta.x, rawMouseDelta.y);
+
+		//gVars.frametimeMethod1((double)100);
+
+		if (keyCodes[VK_INSERT].state == KeyState::Pressed) {
+			hookVars.menu.showMenu = !hookVars.menu.showMenu;
+			print("Menu state: %d\n", hookVars.menu.showMenu);
+		}
 
 		if (keyCodes[VK_CONTROL].state == KeyState::Pressed) {
 			*gVars.freeCamEnabled = *gVars.freeCamEnabled == 0 ? 1 : 0;
@@ -118,30 +218,30 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 
 			//Increase baseMoveSpeed
 			if (keyCodes['X'].state == KeyState::Pressed) {
-				baseMoveSpeed += 0.5;
+				baseMoveSpeed += 0.5f;
 				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
 			}
 
 			//Decrease baseMoveSpeed
 			if (keyCodes['Z'].state == KeyState::Pressed) {
-				baseMoveSpeed -= 0.5;
+				baseMoveSpeed -= 0.5f;
 				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
 			}
 
 			//Increase baseLookSpeed
 			if (keyCodes['V'].state == KeyState::Pressed) {
-				baseLookSpeed += 0.5;
+				baseLookSpeed += 0.5f;
 				print("Base baseLookSpeed is %f\n", baseLookSpeed);
 			}
 
 			//Decrease baseLookSpeed
 			if (keyCodes['C'].state == KeyState::Pressed) {
-				baseLookSpeed -= 0.5;
+				baseLookSpeed -= 0.5f;
 				print("Base baseLookSpeed is %f\n", baseLookSpeed);
 			}
 
-			baseMoveSpeed = clamp(baseMoveSpeed, speedMax, 0.5);
-			baseLookSpeed = clamp(baseLookSpeed, speedMax, 0.5);
+			baseMoveSpeed = clamp(baseMoveSpeed, speedMax, 0.5f);
+			baseLookSpeed = clamp(baseLookSpeed, speedMax, 0.5f);
 
 			//Forwards
 			if (keyCodes['W'].state == KeyState::Pressed || keyCodes['W'].state == KeyState::Down) {
@@ -204,6 +304,10 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				eulerAngles.y -= lookSpeed * RAD2DEG * frameTime;
 			}
 
+			// Apply Mouse Delta scaled to frametime
+			eulerAngles.x += (rawMouseDelta.y * mPitch) * frameTime;
+			eulerAngles.y += (rawMouseDelta.x * mYaw) * frameTime;
+
 			//TODO: clamp eulerAngles to -PI : PI or 0 : 2PI to prevent issues with float rounding errors if they go too high
 
 			if (hv[0] == 0 && hv[1] == 0 && hv[2] == 0) {
@@ -211,8 +315,8 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 				lookSpeed = baseLookSpeed;
 			}
 
-			moveSpeed = clamp(moveSpeed, speedMax, 0.5);
-			lookSpeed = clamp(lookSpeed, speedMax, 0.5);
+			moveSpeed = clamp(moveSpeed, speedMax, 0.5f);
+			lookSpeed = clamp(lookSpeed, speedMax, 0.5f);
 
 			if (eulerAngles.x > PI) {
 				eulerAngles.x = -PI + (eulerAngles.x - PI);
@@ -269,10 +373,12 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 					+ Vector3f(cosf(eulerAngles.x) * -sinf(eulerAngles.y), 
 						-sinf(eulerAngles.x), 
 						cosf(eulerAngles.x) * cosf(eulerAngles.y));
-
+				
 				v3.toVolatile(wishLookAtPos, gVars.cameraLookAtPoint);
 			}
 		}
+
+		rawMouseDelta = Vector3l();
 
 		Sleep((*gVars.realFrameTime / gVars.uConfig.mainThreadUpdateCoef) * 1000);
 		if (breakStep) break;
@@ -281,23 +387,26 @@ DWORD WINAPI asyncThread(LPVOID lpParameter) {
 	return 0;
 }
 
-BOOL WINAPI DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID reserved)
+
+BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID reserved)
 {
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
 		gVars = gameVars();
 
-		myHInst = &hInst;
-		myHandle = GetCurrentProcess();
-		asyncHandle = CreateThread(NULL, NULL, asyncThread, NULL, NULL, &threadID);
-
+		asyncHandle = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)asyncThread, hModule, NULL, &threadID);
 		break;
 
 	case DLL_PROCESS_DETACH:
 		breakStep = true;
 		FreeConsole();
 		CloseHandle(asyncHandle);
+		CloseHandle(asyncRawInputHandle);
+		rid.hwndTarget = NULL;
+		rid.dwFlags = RIDEV_REMOVE;
+		RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
 		break;
 
 	}

@@ -1,10 +1,9 @@
+#pragma once
+
 #ifndef PCH_H
 #define PCH_H
-#define DLL_BUILD
 
-typedef bool(*bPa1a2)(int a1, int a2);
-typedef void(*voidPn)();
-typedef void(*voidPa1)(int a1);
+#define WIN32_LEAN_AND_MEAN
 
 #include <stdio.h>
 #include <string>
@@ -22,13 +21,22 @@ typedef void(*voidPa1)(int a1);
 #include <dwmapi.h>
 #include <inttypes.h>
 #include <cmath>
+#include <mutex>
+#include <tchar.h>
 
-#pragma comment(lib, "dwmapi.lib")
-#pragma comment(lib, "detours.lib")
+#include <dxgi.h>
+#include <d3d11.h>
+#include <d3dcompiler.h>
+#define DIRECTINPUT_VERSION 0x0800
+#include <dinput.h>
+#include <XInput.h>
 
-#include "framework.h"
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "D3DCompiler.lib")
+
 #include "Quaternion.h"
 #include "Vector3.h"
+#include "Utility.h"
 
 #endif
 
