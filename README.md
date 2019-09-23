@@ -7,6 +7,9 @@ This mod allows for you to unlock the full potential of your system and to run F
 
 ## Features
 
+### Free Camera
+Pressing CTRL will allow you to detach the camera from the party and explore the world of the game at your own will!
+
 ### Unlocking your potential
 Get framerates as high as your system can produce. This program gives you full control over the in-game framerate- you could even lower it if that's your style.
 
