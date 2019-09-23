@@ -95,34 +95,42 @@ __forceinline void updateGState(gameVars& gVars) {
 		: 0;
 }
 
-__forceinline void updateFPSCoef(gameVars& gVars)
+__forceinline void updateFPSCoef(gameVars& gVars, bool& demandMinFrameTime)
 {
+
+	if (demandMinFrameTime) {
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametime;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametime;
+		gVars.lastUseMenuLimitState = gVars.gameStateEnum;
+		return;
+	}
+
 	switch (gVars.gameStateEnum)
 	{
 	case 0:
 		//printf("User has exited a menu!\n");
-		*gVars.targetFrameTime = gVars.uConfig.requestedMinFramerate;
-		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFramerate;
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametime;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametime;
 		break;
 	case 1:
 		//printf("User has entered a menu!\n");
-		*gVars.targetFrameTime = gVars.uConfig.requestedMinFramerateMenus;
-		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFramerateMenus;
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametimeMenus;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametimeMenus;
 		break;
 	case 2:
 		//printf("Game window has lost focus!\n");
-		*gVars.targetFrameTime = gVars.uConfig.requestedMinFramerateNoFocus;
-		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFramerateNoFocus;
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametimeNoFocus;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametimeNoFocus;
 		break;
 	case 3:
 		//printf("User has entered a movie!\n");
-		*gVars.targetFrameTime = gVars.uConfig.requestedMinFramerateMovies;
-		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFramerateMovies;
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametimeMovies;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametimeMovies;
 		break;
 	case 4:
 		//printf("The user is in a cutscene; reducing framerate!\n");
-		*gVars.targetFrameTime = gVars.uConfig.requestedMinFramerateMovies;
-		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFramerateMovies;
+		*gVars.targetFrameTime = gVars.uConfig.requestedMinFrametimeMovies;
+		*gVars.targetFrameTime1 = gVars.uConfig.requestedMinFrametimeMovies;
 		break;
 	}
 	gVars.lastUseMenuLimitState = gVars.gameStateEnum;
@@ -134,7 +142,7 @@ __forceinline void updateMouse(gameVars& gVars) {
 		: gVars.uConfig.lockedMouseMulti;
 }
 
-__forceinline void step(gameVars& gVars) {
+__forceinline void step(gameVars& gVars, bool& demandMinFrametime) {
 	//Fix page permissions
 	DWORD protection;
 	VirtualProtect((LPVOID)minFrameTimePtr, sizeof(double), PAGE_READWRITE, &protection);
@@ -148,7 +156,7 @@ __forceinline void step(gameVars& gVars) {
 	VirtualProtect((LPVOID)fovPtr, sizeof(float), PAGE_READWRITE, &protection);
 
 	updateGState(gVars);
-	updateFPSCoef(gVars);
+	updateFPSCoef(gVars, demandMinFrametime);
 	updateMouse(gVars);
 	gVars.cTime = ((double)clock() / CLOCKS_PER_SEC);
 	tickf(gVars);

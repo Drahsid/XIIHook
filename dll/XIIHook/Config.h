@@ -12,13 +12,13 @@ enum TypeConversion
 	toStr
 };
 
-constexpr int cVERSION = 3;
+constexpr int cVERSION = 4;
 
 //Might be a way to automate this
-constexpr uint64_t NUM_VARS = 18;
+constexpr uint64_t NUM_VARS = 24;
 #define DataConfigs \
 sEnum(Version, "Version", "# File version. Changing this will cause the config to update.\n", TypeConversion::toInt) \
-sEnum(Framerate, "Framerate", "# In game frametime target. [Default: 60, Recommended: A limit that your PC can hit]\n", TypeConversion::toDouble)\
+sEnum(Framerate, "Framerate", "# In game frametime target. [Default: 60, Recommended: A limit that your PC can hit (NOTE THAT YOU CAN PRESS TAB TO FORCE THIS)]\n", TypeConversion::toDouble)\
 sEnum(FramerateMenus, "Framerate_Menus", "# In game frametime target while in menus. [Default: 60, Recommended: A limit that your PC can hit]\n", TypeConversion::toDouble)\
 sEnum(FramerateMovies, "Framerate_Movies", "# In game frametime target while viewing the in game movies/fmvs. [Default: 59.97, Recommended: Default]\n", TypeConversion::toDouble)\
 sEnum(FramerateNoFocus, "Framerate_NoFocus", "# In game frametime target while the game window is not in focus. [Default: 60, Recommended: A lower value if the game is hogging resources]\n", TypeConversion::toDouble)\
@@ -34,7 +34,13 @@ sEnum(EnableAdaptiveMouse, "Enable_Adaptive_Mouse", "# Enabling this will make t
 sEnum(EnableLockedMouseMulti, "Enable_Locked_Mouse_Multi", "# Enabling this will stop the game from taking control over the mouse speed multiplier. This is ignored if Enable_Adaptive_Mouse is on. [Default: On, Recommended: On]\n", TypeConversion::toBool)\
 sEnum(EnableEasing, "Enable_Easing", "# Enabling this will cause certain variables to ease when they are changed, such as the IGM. [Default: On, Recommended: User Preference]\n", TypeConversion::toBool)\
 sEnum(EasingType, "EasingType", "# This value can be set to Linear, OnePointFive, Square, Cubic, Quad, Quint, Sine, SinSq, SinInvSq, PerlinFast, or Perlin. This changes the default equation used to smooth out igm changes, where linear is flat, and quint is the sharpest. [Default: SinSq, Recommended: User Preference]\n# You can find a visualization of the different easing types here: desmos.com/calculator/l1jiznfdof \n", TypeConversion::toStr)\
-sEnum(EasingTime, "EasingTime", "# The time taken to ease into the next igm state. [Default: 0.5, Recommended: User Preference]\n", TypeConversion::toDouble)
+sEnum(EasingTime, "EasingTime", "# The time taken to ease into the next igm state. [Default: 0.5, Recommended: User Preference]\n", TypeConversion::toDouble)\
+sEnum(BaseMoveSpeed, "Free_Camera_Base_Move_Speed", "# The base square speed in in game units of which the free camera will translate. [Default: 4, Recommended: User Preference (NOTE THAT YOU CAN USE X AND Z TO MODIFY THIS)]\n", TypeConversion::toFloat)\
+sEnum(BaseLookSpeed, "Free_Camera_Base_Look_Speed", "# The number of degrees per 'Second / Main_Thread_Update_Coef' of which the free camera will rotate. This does NOT effect mouse input and only effects the arrow keys. [Default: 16, Recommended: User Preference (NOTE THAT YOU CAN USE V AND C TO MODIFY THIS)]\n", TypeConversion::toFloat)\
+sEnum(SpeedMax, "Free_Camera_Speed_Max", "# The maximum speed while moving. This effects both look and move. [Default: 128, Recommended: User Preference (NOTE THAT YOU CAN HOLD SHIFT TO TEMPORARILY FREEZE YOUR CURRENT SPEED)]\n", TypeConversion::toFloat)\
+sEnum(TimeUntilSpeedRamp, "Free_Camera_Speed_Ramping_Time", "# The time, in ms, for which you have to be moving before the speed begins to increase. [Default: 1000, Recommended: User Preference (NOTE THAT YOU CAN USE M AND N TO MODIFY THIS)]\n", TypeConversion::toFloat)\
+sEnum(MPitch, "Free_Camera_M_Pitch", "# Default mouse sensitivity for vertical mouse movements. [Default: 0.01, Recommended: User Preference (NOTE THAT YOU CAN USE + AND - TO MODIFY THIS)]\n", TypeConversion::toFloat)\
+sEnum(MYaw, "Free_Camera_M_Yaw", "# Default mouse sensitivity for horizontal mouse movements. [Default: 0.01, Recommended: User Preference (NOTE THAT YOU CAN USE + AND - TO MODIFY THIS)]\n", TypeConversion::toFloat)
 
 #define sEnum(eName, sName, sDesc, iType) eName,
 enum EnumConfigs : size_t
@@ -87,10 +93,10 @@ class UserConfig
 {
 public:
 	int version = -1;
-	double requestedMinFramerate = 60;
-	double requestedMinFramerateMenus = 60;
-	double requestedMinFramerateMovies = 59.978;
-	double requestedMinFramerateNoFocus = 30;
+	double requestedMinFrametime = 60;
+	double requestedMinFrametimeMenus = 60;
+	double requestedMinFrametimeMovies = 59.978;
+	double requestedMinFrametimeNoFocus = 30;
 	double mainThreadUpdateCoef = 3;
 	float fov = 45;
 	float gamma = 50;
@@ -98,11 +104,17 @@ public:
 	float igmState1Override = 2;
 	float igmState2Override = 4;
 	float lockedMouseMulti = 2;
+	float baseMoveSpeed = 4;
+	float baseLookSpeed = 16;
+	float speedMax = 128;
+	float timeUntilSpeedRamp = 1000;
+	float mPitch = 0.01f;
+	float mYaw = 0.01f;
 	bool bEnableFullSpeedMode = false;
 	bool bEnableAdaptiveMouse = true;
 	bool bEnableLockedMouseMulti = true;
 	bool bEnableEasing = true;
-	char const* easingType = "SinSq";
+	const char* easingType = "SinSq";
 	double easingTime = 0.5;
 public:
 	
@@ -114,16 +126,16 @@ public:
 			return std::to_string(version);
 			break;
 		case 1:
-			return std::to_string(requestedMinFramerate);
+			return std::to_string(requestedMinFrametime);
 			break;
 		case 2:
-			return std::to_string(requestedMinFramerateMenus);
+			return std::to_string(requestedMinFrametimeMenus);
 			break;
 		case 3:
-			return std::to_string(requestedMinFramerateMovies);
+			return std::to_string(requestedMinFrametimeMovies);
 			break;
 		case 4:
-			return std::to_string(requestedMinFramerateNoFocus);
+			return std::to_string(requestedMinFrametimeNoFocus);
 			break;
 		case 5:
 			return std::to_string(mainThreadUpdateCoef);
@@ -159,10 +171,28 @@ public:
 			return std::to_string(bEnableEasing);
 			break;
 		case 16:
-			return easingType;
+			return std::string(easingType, strlen(easingType));
 			break;
 		case 17:
 			return std::to_string(easingTime);
+			break;
+		case 18:
+			return std::to_string(baseMoveSpeed);
+			break;
+		case 19:
+			return std::to_string(baseLookSpeed);
+			break;
+		case 20:
+			return std::to_string(speedMax);
+			break;
+		case 21:
+			return std::to_string(timeUntilSpeedRamp);
+			break;
+		case 22:
+			return std::to_string(mPitch);
+			break;
+		case 23:
+			return std::to_string(mYaw);
 			break;
 		}
 
@@ -185,16 +215,16 @@ public:
 		switch (id)
 		{
 		case 1:
-			requestedMinFramerate = (double)var;
+			requestedMinFrametime = (double)var;
 			break;
 		case 2:
-			requestedMinFramerateMenus = (double)var;
+			requestedMinFrametimeMenus = (double)var;
 			break;
 		case 3:
-			requestedMinFramerateMovies = (double)var;
+			requestedMinFrametimeMovies = (double)var;
 			break;
 		case 4:
-			requestedMinFramerateNoFocus = (double)var;
+			requestedMinFrametimeNoFocus = (double)var;
 			break;
 		case 5:
 			mainThreadUpdateCoef = (double)var;
@@ -227,6 +257,24 @@ public:
 		case 11:
 			lockedMouseMulti = (float)var;
 			break;
+		case 18:
+			baseMoveSpeed = (float)var;
+			break;
+		case 19:
+			baseLookSpeed = (float)var;
+			break;
+		case 20:
+			speedMax = (float)var;
+			break;
+		case 21:
+			timeUntilSpeedRamp = (float)var;
+			break;
+		case 22:
+			mPitch = (float)var;
+			break;
+		case 23:
+			mYaw = (float)var;
+			break;
 		}
 	}
 
@@ -254,7 +302,7 @@ public:
 		switch (id) 
 		{
 		case 16:
-			easingType = (const char*)var.c_str();
+			easingType = var.c_str();
 			break;
 		}
 	}

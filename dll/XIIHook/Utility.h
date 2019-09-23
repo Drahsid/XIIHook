@@ -26,6 +26,10 @@ __forceinline float& clamp(float lhs, float upper, float lower)
 	return min(upper, max(lhs, lower));
 }
 
+__forceinline bool FullscreenCheck(RECT& lhs, RECT& rhs) {
+	return (lhs.bottom == rhs.bottom && lhs.left == lhs.left && lhs.right == rhs.right && lhs.top == rhs.top) ? true : false;
+}
+
 #endif
 
 

@@ -9,7 +9,7 @@
 #include "d3d11hook.h"
 
 #define keyCodes gVars.IM.keyCode
-
+#define userConfig gVars.uConfig
 
 namespace
 {
@@ -22,95 +22,77 @@ namespace
 	Vector3f wishLookAtPos;
 	Vector3f lastPos;
 	Vector3f eulerAngles;
-	Vector3l rawMouseDelta;
+	Vector3 rawMouseDelta;
+	CriticallyDampedV3 smoothRawMouseDelta;
 
 	DWORD pId;
 	DWORD threadID;
-	DWORD rawInputThreadID;
 
 	HANDLE hProcess;
 	HANDLE asyncHandle;
-	HANDLE asyncRawInputHandle;
 
 	//TODO: Add these to config
-	const float timeUntilSpeedRamp = 1000;
-	const float speedMax = 128;
-	float baseMoveSpeed = 4;
-	float baseLookSpeed = 16;
-	float moveSpeed = baseMoveSpeed;
-	float lookSpeed = baseLookSpeed;
-	float mPitch = 0.0105f;
-	float mYaw = 0.0105f;
-
-	double lastMessageTick = 0;
+	float moveSpeed, lookSpeed;
+	float cameraMoveSpeed;
+	bool useMouseSmoothing = false;
+	bool demandMinFrametime = false;
 
 	bool breakStep;
 
-	MSG msg;
-	HHOOK hhk = NULL;
-	RAWINPUTDEVICE rid;
-	std::vector<BYTE> rawInputBuffer;
+	LONG_PTR wndProc = NULL;
+	LONG_PTR originalProc = NULL;
+	//RAWINPUTDEVICE rid;
+	//std::vector<BYTE> rawInputBuffer;
 }
 
 inline void rampupSpeed() {
 	moveSpeed += (2 * (float)*gVars.realFrameTime);
-	float wishspeed = baseLookSpeed * ((moveSpeed / baseMoveSpeed) / 8);
-	lookSpeed = wishspeed >= baseLookSpeed ? wishspeed : baseLookSpeed;
+	float wishspeed = userConfig.baseLookSpeed * ((moveSpeed / userConfig.baseMoveSpeed) / 8);
+	lookSpeed = wishspeed >= userConfig.baseLookSpeed ? wishspeed : userConfig.baseLookSpeed;
 }
 
-LRESULT CALLBACK msgHook(int nCode, WPARAM wParam, LPARAM lParam) {
-	PostMessage(NULL, WM_INPUT, wParam, lParam);
-	return CallNextHookEx(hhk, nCode, wParam, lParam);
-}
+LRESULT CALLBACK newProc(HWND Hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	if (message == WM_MOUSEMOVE) {
+		POINTS newPos = MAKEPOINTS(lParam);
+		Vector3 delta;
 
-DWORD WINAPI asyncRawInputThread(HMODULE hModule) {
-	rid.usUsagePage = 0x01;
-	rid.usUsage = 0x02;
-	rid.dwFlags = 0;
-	rid.hwndTarget = nullptr;
+		RECT windowRect, desktopRect;
+		GetWindowRect(GetDesktopWindow(), &desktopRect);
+		GetWindowRect(gVars.FFXIIWND, &windowRect);
 
-	if (RegisterRawInputDevices(&rid, 1, sizeof(rid)) == FALSE) {
-		print("Error: registering raw input devices!\n");
-	}
-
-	hhk = SetWindowsHookEx(WH_MOUSE_LL, msgHook, NULL, NULL);
-
-	if (hhk == NULL) print("Failed to create Windows hook!\nError: %lu\n", GetLastError());
-
-	while (true) {
-		GetMessage(&msg, NULL, 0, 0);
-
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-
-		if (msg.message == WM_INPUT) 
-		{
-			SetLastError(0);
-
-			UINT size = sizeof(RAWINPUT);
-			UINT rvalue = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-
-			if (rvalue == -1) print("Error: GetRawInputData 0\nLast Error: %lu\n", GetLastError());
-
-			rawInputBuffer.resize(size);
-
-			rvalue = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, rawInputBuffer.data(), &size, sizeof(RAWINPUTHEADER));
-
-			if (rvalue != size) print("Error: GetRawInputData 1\nLast Error: %lu\n", GetLastError());
-
-			RAWINPUT ri = (RAWINPUT&)(*rawInputBuffer.data());
-
-			if (ri.header.dwType == RIM_TYPEMOUSE)
-			{
-				print("Raw mouse delta: (%ld, %ld)\n", ri.data.mouse.lLastX, ri.data.mouse.lLastY);
-				rawMouseDelta += Vector3l(ri.data.mouse.lLastX, ri.data.mouse.lLastY, 0);
-			}
+		if (FullscreenCheck(windowRect, desktopRect)) {
+			delta = Vector3(
+				(double)newPos.x - ((double)windowRect.right / 2),
+				(double)newPos.y - ((double)windowRect.bottom / 2), 0);
 		}
-
-		Sleep(1);
+		else {
+			delta = Vector3(
+				(double)newPos.x - ((double)windowRect.right / 2) + 4,
+				(double)newPos.y - ((double)windowRect.bottom / 2) + 31, 0);
+		}
+		
+		rawMouseDelta += delta;
+		smoothRawMouseDelta.SetTarget(rawMouseDelta);
 	}
 
-	return 0;
+	//TODO: Figure out why this isn't sent?
+	/*
+	if (message == WM_INPUT)
+	{
+		UINT size = sizeof(RAWINPUT);
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+		rawInputBuffer.resize(size);
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, rawInputBuffer.data(), &size, sizeof(RAWINPUTHEADER));
+
+		RAWINPUT ri = (RAWINPUT&)(*rawInputBuffer.data());
+		if (ri.header.dwType == RIM_TYPEMOUSE)
+		{
+			print("Raw mouse delta: (%ld, %ld)\n", ri.data.mouse.lLastX, ri.data.mouse.lLastY);
+			rawMouseDelta += Vector3l(ri.data.mouse.lLastX, ri.data.mouse.lLastY, 0);
+		}
+	}*/
+	
+	return CallWindowProc((WNDPROC)originalProc, gVars.FFXIIWND, message, wParam, lParam);
 }
 
 DWORD WINAPI asyncThread(HMODULE hModule) 
@@ -140,7 +122,7 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 	breakStep = false;
 
 	hookVars.menu = Menu();
-	InitImGui(hModule, gVars, hookVars);
+	//InitImGui(hModule, gVars, hookVars);
 
 	v3 = Vector3f();
 	wishLookAtPos = v3;
@@ -150,16 +132,34 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 	lrgh = Vector3f(1, 0, 0);
 	eulerAngles = v3;
 
-	rawMouseDelta = Vector3l();
+	rawMouseDelta = Vector3();
+	smoothRawMouseDelta = CriticallyDampedV3(25);
 
-	asyncRawInputHandle = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)asyncRawInputThread, hModule, NULL, &rawInputThreadID);
+	/*
+	rid.usUsagePage = 0x01;
+	rid.usUsage = 0x02;
+	rid.dwFlags = 0;
+	rid.hwndTarget = nullptr;
+
+	if (RegisterRawInputDevices(&rid, 1, sizeof(rid)) == FALSE) {
+		print("Error: registering raw input devices!\n");
+	}*/
+
+	originalProc = GetWindowLongPtr(gVars.FFXIIWND, GWLP_WNDPROC);
+	wndProc = SetWindowLongPtr(gVars.FFXIIWND, GWLP_WNDPROC, (LONG_PTR)newProc);
+
+	clock_t lastUpdateTime = 0;
+	double loopDeltaTime = 0;
 
 	for (;;) {
-		step(gVars);
-		hookVars.menu.Render(&gVars);
+		clock_t thisClock = clock();
+		loopDeltaTime = (double)(thisClock - lastUpdateTime) / CLOCKS_PER_SEC;
+		lastUpdateTime = thisClock;
 
-		ImGuiIO& io = ImGui::GetIO();
-		io.MouseDrawCursor = true;
+		step(gVars, demandMinFrametime);
+		//hookVars.menu.Render(&gVars);
+		//ImGuiIO& io = ImGui::GetIO();
+		//io.MouseDrawCursor = true;
 
 		//print("Mouse delta: (%ld, %ld)\n", rawMouseDelta.x, rawMouseDelta.y);
 
@@ -209,8 +209,6 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 
 		if (*gVars.freeCamEnabled)
 		{
-			float frameTime = (float)*gVars.realFrameTime;
-
 			float hv[3];
 			hv[0] = 0;
 			hv[1] = 0;
@@ -218,105 +216,181 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 
 			//Increase baseMoveSpeed
 			if (keyCodes['X'].state == KeyState::Pressed) {
-				baseMoveSpeed += 0.5f;
-				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
+				userConfig.baseMoveSpeed += 0.5f;
+				print("Base baseMoveSpeed is %f\n", userConfig.baseMoveSpeed);
 			}
 
 			//Decrease baseMoveSpeed
 			if (keyCodes['Z'].state == KeyState::Pressed) {
-				baseMoveSpeed -= 0.5f;
-				print("Base baseMoveSpeed is %f\n", baseMoveSpeed);
+				userConfig.baseMoveSpeed -= 0.5f;
+				print("Base baseMoveSpeed is %f\n", userConfig.baseMoveSpeed);
 			}
 
 			//Increase baseLookSpeed
 			if (keyCodes['V'].state == KeyState::Pressed) {
-				baseLookSpeed += 0.5f;
-				print("Base baseLookSpeed is %f\n", baseLookSpeed);
+				userConfig.baseLookSpeed += 0.5f;
+				print("Base baseLookSpeed is %f\n", userConfig.baseLookSpeed);
 			}
 
 			//Decrease baseLookSpeed
 			if (keyCodes['C'].state == KeyState::Pressed) {
-				baseLookSpeed -= 0.5f;
-				print("Base baseLookSpeed is %f\n", baseLookSpeed);
+				userConfig.baseLookSpeed -= 0.5f;
+				print("Base baseLookSpeed is %f\n", userConfig.baseLookSpeed);
 			}
 
-			baseMoveSpeed = clamp(baseMoveSpeed, speedMax, 0.5f);
-			baseLookSpeed = clamp(baseLookSpeed, speedMax, 0.5f);
+			userConfig.baseMoveSpeed = clamp(userConfig.baseMoveSpeed, userConfig.speedMax, 0.5f);
+			userConfig.baseLookSpeed = clamp(userConfig.baseLookSpeed, userConfig.speedMax, 0.5f);
 
 			//Forwards
 			if (keyCodes['W'].state == KeyState::Pressed || keyCodes['W'].state == KeyState::Down) {
 				hv[0] += 1;
-				if (clock() > keyCodes['W'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['W'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Backwards
 			if (keyCodes['S'].state == KeyState::Pressed || keyCodes['S'].state == KeyState::Down) {
 				hv[0] -= 1;
-				if (clock() > keyCodes['S'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['S'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Right Strafe
 			if (keyCodes['D'].state == KeyState::Pressed || keyCodes['D'].state == KeyState::Down) {
 				hv[1] += 1;
-				if (clock() > keyCodes['D'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['D'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Strafe
 			if (keyCodes['A'].state == KeyState::Pressed || keyCodes['A'].state == KeyState::Down) {
 				hv[1] -= 1;
-				if (clock() > keyCodes['A'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['A'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Raise
 			if (keyCodes['E'].state == KeyState::Pressed || keyCodes['E'].state == KeyState::Down) {
 				hv[2] += 1;
-				if (clock() > keyCodes['E'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['E'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
 			//Lower
 			if (keyCodes['Q'].state == KeyState::Pressed || keyCodes['Q'].state == KeyState::Down) {
 				hv[2] -= 1;
-				if (clock() > keyCodes['Q'].invokeTime + timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
+				if (clock() > keyCodes['Q'].invokeTime + userConfig.timeUntilSpeedRamp && keyCodes[VK_SHIFT].state != KeyState::Down) rampupSpeed();
 			}
 
-			// Adjust Pitch & Yaw
+			if (keyCodes[VK_TAB].state == KeyState::Pressed) {
+				useMouseSmoothing = !useMouseSmoothing;
+				print("Mouse Smoothing: %d\n", useMouseSmoothing);
+			}
+
+			if (keyCodes[VK_OEM_3].state == KeyState::Pressed) {
+				demandMinFrametime = !demandMinFrametime;
+				print("Demand Minimum Frametime: %d\n", demandMinFrametime);
+			}
+
+			if (keyCodes[VK_OEM_PERIOD].state == KeyState::Pressed) {
+				smoothRawMouseDelta.dampening += 0.5;
+				print("Mouse Smoothing Dampening: %f\n", smoothRawMouseDelta.dampening);
+			}
+
+			if (keyCodes[VK_OEM_COMMA].state == KeyState::Pressed) {
+				smoothRawMouseDelta.dampening -= 0.5;
+				print("Mouse Smoothing Dampening: %f\n", smoothRawMouseDelta.dampening);
+			}
+
+			if (keyCodes[VK_OEM_PLUS].state == KeyState::Pressed) {
+				userConfig.mYaw += 0.0005;
+				userConfig.mPitch += 0.0005;
+				print("Mouse Pitch and Yaw Coefs: (%f, %f)\n", userConfig.mPitch, userConfig.mYaw);
+			}
+
+			if (keyCodes[VK_OEM_MINUS].state == KeyState::Pressed) {
+				userConfig.mYaw -= 0.0005;
+				userConfig.mPitch -= 0.0005;
+				print("Mouse Pitch and Yaw Coefs: (%f, %f)\n", userConfig.mPitch, userConfig.mYaw);
+			}
+
+			if (keyCodes['M'].state == KeyState::Pressed) {
+				userConfig.timeUntilSpeedRamp += 50;
+				print("Time Until Speed Ramp: %f\n", userConfig.timeUntilSpeedRamp);
+			}
+
+			if (keyCodes['N'].state == KeyState::Pressed) {
+				userConfig.timeUntilSpeedRamp -= 50;
+				print("Time Until Speed Ramp: %f\n", userConfig.timeUntilSpeedRamp);
+			}
+
+			Vector3 mouseDelta = Vector3();
+
+			// Mouse Look
+			if (keyCodes[VK_RBUTTON].state == KeyState::Pressed || keyCodes[VK_RBUTTON].state == KeyState::Down
+				|| keyCodes[VK_LBUTTON].state == KeyState::Pressed || keyCodes[VK_LBUTTON].state == KeyState::Down
+				) {
+				// Apply Mouse Delta scaled to deltatime
+				if (useMouseSmoothing) {
+					mouseDelta = smoothRawMouseDelta.GetPosition();
+				}
+				else {
+					mouseDelta.x = rawMouseDelta.x;
+					mouseDelta.y = rawMouseDelta.y;
+				}
+			}
+
+			cameraMoveSpeed = 0;
+			//Movement Effectors
+			if (keyCodes[VK_LBUTTON].state == KeyState::Pressed || keyCodes[VK_LBUTTON].state == KeyState::Down) {
+				mouseDelta.y = 0; // Disable pitch look
+				hv[0] += -rawMouseDelta.y; // Steering? Not sure what this is called
+				cameraMoveSpeed = abs(rawMouseDelta.y) * userConfig.mPitch;
+			}
+
 			if (keyCodes[VK_MBUTTON].state == KeyState::Pressed || keyCodes[VK_MBUTTON].state == KeyState::Down) {
+				mouseDelta = Vector3(); //Disable Look
+				hv[1] += rawMouseDelta.x * loopDeltaTime; // Horizontal Panning
+				hv[2] += -rawMouseDelta.y * loopDeltaTime; // Vertical Panning
 
+				cameraMoveSpeed = (abs(rawMouseDelta.x) * userConfig.mYaw) + (abs(rawMouseDelta.y) * userConfig.mPitch);
 			}
+
+			if ((keyCodes[VK_MENU].state == KeyState::Pressed || keyCodes[VK_MENU].state == KeyState::Down)
+				&& (keyCodes[VK_RBUTTON].state == KeyState::Pressed || keyCodes[VK_RBUTTON].state == KeyState::Down)
+				) {
+				mouseDelta = Vector3(); //Disable Look
+				hv[0] += -rawMouseDelta.y; // Dollying
+				cameraMoveSpeed = abs(rawMouseDelta.y) * userConfig.mPitch;
+			}
+
+			eulerAngles.x += (mouseDelta.y * userConfig.mPitch) * loopDeltaTime;
+			eulerAngles.y += (mouseDelta.x * userConfig.mYaw) * loopDeltaTime;
 
 			// Negative Pitch
 			if (keyCodes[VK_UP].state == KeyState::Pressed || keyCodes[VK_UP].state == KeyState::Down) {
-				eulerAngles.x -= lookSpeed * RAD2DEG * frameTime;
+				eulerAngles.x -= lookSpeed * RAD2DEG * loopDeltaTime;
 			}
 
 			// Positive Pitch
 			if (keyCodes[VK_DOWN].state == KeyState::Pressed || keyCodes[VK_DOWN].state == KeyState::Down) {
-				eulerAngles.x += lookSpeed * RAD2DEG * frameTime;
+				eulerAngles.x += lookSpeed * RAD2DEG * loopDeltaTime;
 			}
 
 			// Positive Yaw
 			if (keyCodes[VK_RIGHT].state == KeyState::Pressed || keyCodes[VK_RIGHT].state == KeyState::Down) {
-				eulerAngles.y += lookSpeed * RAD2DEG * frameTime;
+				eulerAngles.y += lookSpeed * RAD2DEG * loopDeltaTime;
 			}
 
 			// Negative Yaw
 			if (keyCodes[VK_LEFT].state == KeyState::Pressed || keyCodes[VK_LEFT].state == KeyState::Down) {
-				eulerAngles.y -= lookSpeed * RAD2DEG * frameTime;
+				eulerAngles.y -= lookSpeed * RAD2DEG * loopDeltaTime;
 			}
-
-			// Apply Mouse Delta scaled to frametime
-			eulerAngles.x += (rawMouseDelta.y * mPitch) * frameTime;
-			eulerAngles.y += (rawMouseDelta.x * mYaw) * frameTime;
 
 			//TODO: clamp eulerAngles to -PI : PI or 0 : 2PI to prevent issues with float rounding errors if they go too high
 
 			if (hv[0] == 0 && hv[1] == 0 && hv[2] == 0) {
-				moveSpeed = baseMoveSpeed;
-				lookSpeed = baseLookSpeed;
+				moveSpeed = userConfig.baseMoveSpeed;
+				lookSpeed = userConfig.baseLookSpeed;
 			}
 
-			moveSpeed = clamp(moveSpeed, speedMax, 0.5f);
-			lookSpeed = clamp(lookSpeed, speedMax, 0.5f);
+			moveSpeed = clamp(moveSpeed, userConfig.speedMax, 0.5f) + cameraMoveSpeed;
+			lookSpeed = clamp(lookSpeed, userConfig.speedMax, 0.5f);
 
 			if (eulerAngles.x > PI) {
 				eulerAngles.x = -PI + (eulerAngles.x - PI);
@@ -357,7 +431,7 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 
 			if (wishMove.magnitude() != 0)
 			{
-				wishMove = wishMove.normalized() * (moveSpeed * frameTime);
+				wishMove = wishMove.normalized() * (moveSpeed * loopDeltaTime);
 				wishPos = cameraPos + wishMove;
 				wishLookAtPos = wishPos
 					+ Vector3f(cosf(eulerAngles.x) * -sinf(eulerAngles.y), 
@@ -378,9 +452,9 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 			}
 		}
 
-		rawMouseDelta = Vector3l();
+		rawMouseDelta = Vector3();
 
-		Sleep((*gVars.realFrameTime / gVars.uConfig.mainThreadUpdateCoef) * 1000);
+		Sleep((*gVars.realFrameTime / userConfig.mainThreadUpdateCoef) * 1000);
 		if (breakStep) break;
 	}
 
@@ -402,10 +476,9 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID reserved)
 		breakStep = true;
 		FreeConsole();
 		CloseHandle(asyncHandle);
-		CloseHandle(asyncRawInputHandle);
-		rid.hwndTarget = NULL;
-		rid.dwFlags = RIDEV_REMOVE;
-		RegisterRawInputDevices(&rid, 1, sizeof(rid));
+		//rid.hwndTarget = NULL;
+		//rid.dwFlags = RIDEV_REMOVE;
+		//RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
 		break;
 

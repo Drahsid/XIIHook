@@ -126,6 +126,99 @@ public:
 	Interpolator() {}
 };
 
+template <class T>
+class CriticallyDamped {
+public:
+	double dampening = 1;
+	
+	void Step(clock_t newTime) {
+		clock_t dt = newTime - lastUpdate;
+		double deltaTime = ((double)dt) / CLOCKS_PER_SEC;
+
+		T f = velocity - (currentPosition - targetPosition) * (dampening * dampening * deltaTime);
+		double e = 1 + dampening * deltaTime;
+		velocity = f / (e * e);
+		currentPosition = currentPosition + velocity * deltaTime;
+
+		lastUpdate = newTime;
+	}
+
+	void Step(double deltaTime) {
+		T f = velocity - (currentPosition - targetPosition) * (dampening * dampening * deltaTime);
+		double e = 1 + dampening * deltaTime;
+		velocity = f / (e * e);
+		currentPosition = currentPosition + velocity * deltaTime;
+
+		lastUpdate = clock();
+	}
+
+	T GetPosition() {
+		Step(clock());
+		return currentPosition;
+	}
+
+	T GetTarget() {
+		return targetPosition;
+	}
+
+	T GetVelocity() {
+		Step(clock());
+		return velocity;
+	}
+
+	T GetPosition(double deltaTime) {
+		Step(deltaTime);
+		return currentPosition;
+	}
+
+	T GetTarget(double deltaTime) {
+		Step(deltaTime);
+		return targetPosition;
+	}
+
+	T GetVelocity(double deltaTime) {
+		Step(deltaTime);
+		return velocity;
+	}
+
+	void SetPosition(T rhs) {
+		currentPosition = rhs;
+	}
+
+	void SetTarget(T rhs) {
+		targetPosition = rhs;
+	}
+
+	void SetVelocity(T rhs) {
+		velocity = rhs;
+	}
+
+	CriticallyDamped() {}
+	CriticallyDamped(double d)
+	{
+		dampening = d;
+	}
+	CriticallyDamped(double d, T t)
+	{
+		dampening = d;
+		targetPosition = t;
+	}
+	CriticallyDamped(double d, T c, T t)
+	{
+		dampening = d;
+		currentPosition = c;
+		targetPosition = t;
+	}
+
+private:
+	clock_t lastUpdate = 0;
+	T currentPosition = T();
+	T targetPosition = T();
+	T velocity = T();
+};
+
+typedef CriticallyDamped<Vector3> CriticallyDampedV3;
+
 #endif
 
 
