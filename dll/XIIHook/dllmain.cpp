@@ -152,6 +152,11 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 	double loopDeltaTime = 0;
 
 	for (;;) {
+
+		Vector3f rhs;
+		v3.fromVolatile(gVars.cameraPosition, rhs);
+		//print("%s\n", rhs.toString().c_str());
+
 		clock_t thisClock = clock();
 		loopDeltaTime = (double)(thisClock - lastUpdateTime) / CLOCKS_PER_SEC;
 		lastUpdateTime = thisClock;
@@ -164,6 +169,8 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 		//print("Mouse delta: (%ld, %ld)\n", rawMouseDelta.x, rawMouseDelta.y);
 
 		//gVars.frametimeMethod1((double)100);
+
+		*gVars.fov = userConfig.fov * RAD2DEG;
 
 		if (keyCodes[VK_INSERT].state == KeyState::Pressed) {
 			hookVars.menu.showMenu = !hookVars.menu.showMenu;
@@ -393,17 +400,19 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 			lookSpeed = clamp(lookSpeed, userConfig.speedMax, 0.5f);
 
 			if (eulerAngles.x > PI) {
-				eulerAngles.x = -PI + (eulerAngles.x - PI);
+				eulerAngles.x += -TAU;
+				eulerAngles.y += HPI; //Fix wrong flipping
 			}
 			if (eulerAngles.x < -PI) {
-				eulerAngles.x = PI - (eulerAngles.x - PI);
+				eulerAngles.x += TAU;
+				eulerAngles.y += HPI; //Fix wrong flipping
 			}
 
 			if (eulerAngles.y > TAU) {
-				eulerAngles.y = -TAU + (eulerAngles.y - TAU);
+				eulerAngles.y += -DTAU;
 			}
 			if (eulerAngles.y < -TAU) {
-				eulerAngles.y = TAU - (eulerAngles.y - TAU);
+				eulerAngles.y += DTAU;
 			}
 
 			Vector3f wishMove = v3;
@@ -437,7 +446,6 @@ DWORD WINAPI asyncThread(HMODULE hModule)
 					+ Vector3f(cosf(eulerAngles.x) * -sinf(eulerAngles.y), 
 						-sinf(eulerAngles.x), 
 						cosf(eulerAngles.x) * cosf(eulerAngles.y));
-
 				v3.toVolatile(wishPos, gVars.cameraPosition);
 				v3.toVolatile(wishLookAtPos, gVars.cameraLookAtPoint);
 			}

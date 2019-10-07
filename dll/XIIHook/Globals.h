@@ -3,6 +3,8 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+typedef unsigned __int64 QWORD;
+
 //Game funcs
 typedef bool(*bPa1a2)(int a1, int a2);
 typedef void(*voidPn)();
@@ -11,6 +13,8 @@ typedef void(*voidPd1)(double a1);
 typedef void(*voidPd1a2)(double a1, int a2);
 typedef void(*voidPa1d2)(int a1, double a2);
 typedef void(*voidPa1s2)(int a1, const char* a2);
+typedef QWORD(*QWORDPn)();
+typedef __int64(*i64Pa1a2a3va)(__int64 a1, __int64 a2, __int64 a3, ...);
 
 //Constexprs
 constexpr long double RAD2DEG = 0.0174532925199L;
@@ -18,6 +22,7 @@ constexpr long double RAD90 = 1.570796L;
 constexpr long double ONE_OVER_SIXTY = 0.01666666666666667L;
 constexpr long double PI = 3.14159265358979323846L;
 constexpr long double TAU = 2L * PI;
+constexpr long double DTAU = 2L * TAU;
 constexpr long double HPI = PI / 2L;
 
 //TODO: clean this file up
