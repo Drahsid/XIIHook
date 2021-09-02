@@ -34,4 +34,9 @@ There are many other small options and tweaks in this program relating to the us
 #### Contributors
 Drahsid, ffgriever
 
-[![PayPal Donate](https://img.shields.io/badge/paypal-donate-blue.svg)](<https://paypal.me/Drahsid>)
+#### Github Sponsors
+Thanks to the following sponsors for sponsoring at the $25 dollar tier or higher, and choosing to stick their name in this readme:
+
+* [Malon Rose](https://github.com/malonrose)
+
+If you would like to sponsor me, you can do so [here](https://github.com/sponsors/Drahsid)
